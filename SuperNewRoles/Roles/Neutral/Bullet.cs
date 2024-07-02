@@ -47,7 +47,8 @@ public class Bullet : RoleBase, ISidekick, INeutral, IVentAvailable, ISaboAvaila
     {
         if (SidekickedParent == null)
             return;
-        SetNamesClass.SetPlayerNameText(SidekickedParent.Player, SidekickedParent.Player.NameText().text + ModHelpers.Cs(WaveCannonJackal.Roleinfo.RoleColor, "☆"));
+        //SetNamesClass.SetPlayerNameText(SidekickedParent.Player, SidekickedParent.Player.NameText().text + ModHelpers.Cs(WaveCannonJackal.Roleinfo.RoleColor, "☆"));
+        SetNamesClass.PlayerNameSuffixes[SidekickedParent.Player.PlayerId].Bullet = true;
     }
     private bool IsNearParent()
     {

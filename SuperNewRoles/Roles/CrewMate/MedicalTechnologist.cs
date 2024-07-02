@@ -76,7 +76,7 @@ public class MedicalTechnologist : RoleBase, ICrewmate, ISupportSHR, ICustomButt
     /// <summary>
     /// 採取対象に表示するマーク ( © => 赤血球 )
     /// </summary>
-    const string ErythrocyteMark = "<color=#b32323> \u00A9</color>";
+    public const string ErythrocyteMark = "<color=#b32323> \u00A9</color>";
 
     [Flags]
     enum JudgmentType
@@ -219,12 +219,14 @@ public class MedicalTechnologist : RoleBase, ICrewmate, ISupportSHR, ICustomButt
         if (SampleCrews.FirstCrew != byte.MaxValue)
         {
             PlayerControl first = ModHelpers.PlayerById(SampleCrews.FirstCrew);
-            SetNamesClass.SetPlayerNameText(first, $"{first.NameText().text}{ErythrocyteMark}");
+            SetNamesClass.PlayerNameSuffixes[first.PlayerId].MedicalTechnologist = true;
+            //SetNamesClass.SetPlayerNameText(first, $"{first.NameText().text}{ErythrocyteMark}");
         }
         if (SampleCrews.SecondCrew != byte.MaxValue)
         {
-            PlayerControl Second = ModHelpers.PlayerById(SampleCrews.SecondCrew);
-            SetNamesClass.SetPlayerNameText(Second, $"{Second.NameText().text}{ErythrocyteMark}");
+            PlayerControl second = ModHelpers.PlayerById(SampleCrews.SecondCrew);
+            SetNamesClass.PlayerNameSuffixes[second.PlayerId].MedicalTechnologist = true;
+            //SetNamesClass.SetPlayerNameText(Second, $"{Second.NameText().text}{ErythrocyteMark}");
         }
     }
 
