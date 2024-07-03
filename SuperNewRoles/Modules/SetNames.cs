@@ -30,7 +30,7 @@ public class SetNamesClass
     public static Dictionary<int, string> PlayerNameTexts = new();
     public static Dictionary<int, PlayerSuffixBuilder> PlayerNameSuffixes = new();
     public static Dictionary<int, Color> PlayerNameColors = new();
-    public static Dictionary<int, bool> PlayerRoleInfoUpdated = new();
+    public static HashSet<int> PlayerRoleInfoUpdated = new();
 
     public static void ApplyAllPlayerNameTextAndColor()
     {
@@ -184,8 +184,8 @@ public class SetNamesClass
     {
         if (p.IsBot()) return;
         //SetNamesUpdate.Postfixの1ループ中に、各プレイヤー1回のみ呼び出されるようにする
-        if (PlayerRoleInfoUpdated[p.PlayerId]) return;
-        PlayerRoleInfoUpdated[p.PlayerId] = true;
+        if (PlayerRoleInfoUpdated.Contains(p.PlayerId)) return;
+        PlayerRoleInfoUpdated.Add(p.PlayerId);
         string roleNames;
         Color roleColors;
         string GhostroleNames = "";
