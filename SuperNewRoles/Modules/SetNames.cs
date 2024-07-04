@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Patches;
@@ -565,6 +566,30 @@ public class SetNamesClass
 }
 public class SetNameUpdate
 {
+    public static void Postfix2(PlayerControl __instance)
+    {
+        bool CanSeeAllRole =
+            SetNamesClass.CanGhostSeeRoles() ||
+            Debugger.canSeeRole ||
+            (PlayerControl.LocalPlayer.GetRoleBase() is INameHandler nameHandler &&
+            nameHandler.AmAllRoleVisible);
+        ReadOnlySpan<CachedPlayer> Players = CollectionsMarshal.AsSpan(CachedPlayer.AllPlayers);
+        //TODO:Suffixの確認どこでやるの？
+        foreach (PlayerControl player in Players)
+        {
+            var check = CheckView(player);
+            //というかこれならApplyしちゃってよい
+            if (check.Item1) SetNamesClass.SetPlayerNameColors(player);
+            if (check.Item2) SetNamesClass.SetPlayerRoleInfo(player);
+        }
+    }
+    public static ValueTuple<bool, bool> CheckView(PlayerControl player)
+    {
+        //return TupleValue(NameColor, RoleInfo)
+
+        //TODO: 表示するか否かの確認をここでする
+        return (false, false);
+    }
     public static void Postfix(PlayerControl __instance)
     {
         //TODO: 本来なら毎フレームではなくRole変更やSabotage、タスク完了など、名前/RoleInfoの変更時のみ呼び出されるべき
