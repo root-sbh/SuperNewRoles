@@ -139,11 +139,9 @@ public class Cupid : RoleBase, INeutral, IFixedUpdaterAll, IFixedUpdaterMe, ISup
     {
         if (Created && currentPair != null)
         {
-            string suffix = ModHelpers.Cs(RoleClass.Lovers.color, " ♥");
             PlayerControl side = currentPair.GetOneSideLovers();
-            SetNamesClass.SetPlayerNameText(currentPair, $"{currentPair.NameText().text}{suffix}");
-            if (!side.Data.Disconnected)
-                SetNamesClass.SetPlayerNameText(side, $"{side.NameText().text}{suffix}");
+            SetNamesClass.PlayerNameSuffixes[currentPair.PlayerId].Lovers = true;
+            if (!side.Data.Disconnected) SetNamesClass.PlayerNameSuffixes[side.PlayerId].Lovers = true;
         }
     }
     private List<PlayerControl> GetUntargetPlayers()

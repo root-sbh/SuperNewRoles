@@ -49,6 +49,7 @@ public static class Pavlovsdogs
     }
     public static void SetNameUpdate()
     {
+        if (RoleClass.Camouflager.IsCamouflage) return;
         if (PlayerControl.LocalPlayer.IsPavlovsTeam())
         {
             foreach (PlayerControl p in RoleClass.Pavlovsdogs.PavlovsdogsPlayer)
