@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Patches;
@@ -213,7 +214,7 @@ public class SetNamesClass
         else if (p.IsPavlovsTeam())
         {
             var introData = IntroData.PavlovsdogsIntro;
-            roleNames = introData.Name + (role == RoleId.Pavlovsdogs ? "(D)" : "(O)");
+            roleNames = $"{introData.Name}{(role == RoleId.Pavlovsdogs ? "(D)" : "(O)")}";
             roleColors = RoleClass.Pavlovsdogs.color;
         }
         else
@@ -385,16 +386,17 @@ public class SetNamesClass
     {
         if (CanGhostSeeRoles() || PlayerControl.LocalPlayer.IsRole(RoleId.God))
         {
-            foreach (SatsumaAndImo player in RoleBaseManager.GetRoleBases<SatsumaAndImo>())
+            IReadOnlyList<SatsumaAndImo> list = RoleBaseManager.GetRoleBases<SatsumaAndImo>();
+            for (int i = 0; i < list.Count; i++)
             {
                 //クルーなら
-                if (player.TeamState == SatsumaAndImo.SatsumaTeam.Crewmate)
+                if (list[i].TeamState == SatsumaAndImo.SatsumaTeam.Crewmate)
                 {//名前に(C)をつける
-                    PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoCrew = true;
+                    PlayerNameSuffixes[list[i].Player.PlayerId].SatsumaimoCrew = true;
                 }
-                else if (player.TeamState == SatsumaAndImo.SatsumaTeam.Madmate)
+                else if (list[i].TeamState == SatsumaAndImo.SatsumaTeam.Madmate)
                 {
-                    PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoMad = true;
+                    PlayerNameSuffixes[list[i].Player.PlayerId].SatsumaimoMad = true;
                 }
             }
         }
@@ -576,8 +578,9 @@ public class SetNamesClass
     public static void Postfix(PlayerControl __instance)
     {
         RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
+        bool canGhostSeeRoles = CanGhostSeeRoles();
         bool CanSeeAllRole =
-            CanGhostSeeRoles() ||
+            canGhostSeeRoles ||
             Debugger.canSeeRole ||
             (PlayerControl.LocalPlayer.GetRoleBase() is INameHandler nameHandler &&
             nameHandler.AmAllRoleVisible);
@@ -588,6 +591,7 @@ public class SetNamesClass
             (RoleClass.Demon.IsCheckImpostor && LocalRole == RoleId.Demon) ||
             (LocalRole == RoleId.Safecracker && Safecracker.CheckTask(__instance, Safecracker.CheckTasks.CheckImpostor));
 
+        PlayerRoleInfoUpdated.Clear();
         ReadOnlySpan<CachedPlayer> Players = CachedPlayer.AllPlayers.AsSpan();
         foreach (PlayerControl player in Players)
         {
@@ -598,6 +602,8 @@ public class SetNamesClass
             //というかこれならSetじゃなくApplyしちゃってよい?
             if (check.Item1) SetPlayerNameColors(player, check.Item2);
             if (check.Item3) SetPlayerRoleInfo(player);
+
+            CheckSuffix(player);
         }
         switch (LocalRole)
         {
@@ -656,15 +662,43 @@ public class SetNamesClass
         }
         CustomRoles.NameHandler(CanSeeAllRole);
         //Suffixes
-        Pavlovsdogs.SetNameUpdate();
-        ArsonistSet();
-        DemonSet();
-        CelebritySet();
-        QuarreledSet();
-        LoversSet();
         MoiraSet();
         SatsumaimoSet();
-        JumboSet();
+
+        if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.QuarreledMark)
+        {
+            if (PlayerControl.LocalPlayer.IsQuarreled() && PlayerControl.LocalPlayer.IsAlive())
+            {
+                PlayerControl side = PlayerControl.LocalPlayer.GetOneSideQuarreled();
+                PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].Quarreled = true;
+                if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].Quarreled = true;
+            }
+        }
+        if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.LoversMark)
+        {
+            if ((PlayerControl.LocalPlayer.IsLovers() || (PlayerControl.LocalPlayer.IsFakeLovers() && !PlayerControl.LocalPlayer.IsFakeLoversFake())) && PlayerControl.LocalPlayer.IsAlive())
+            {
+                PlayerControl side = PlayerControl.LocalPlayer.GetOneSideLovers();
+                if (side == null) side = PlayerControl.LocalPlayer.GetOneSideFakeLovers();
+                PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].Lovers = true;
+                if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].Lovers = true;
+            }
+        }
+        if (canGhostSeeRoles || LocalRole == RoleId.God)
+        {
+            foreach (SatsumaAndImo player in RoleBaseManager.GetRoleBases<SatsumaAndImo>())
+            {
+                //クルーなら
+                if (player.TeamState == SatsumaAndImo.SatsumaTeam.Crewmate)
+                {//名前に(C)をつける
+                    PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoCrew = true;
+                }
+                else if (player.TeamState == SatsumaAndImo.SatsumaTeam.Madmate)
+                {
+                    PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoMad = true;
+                }
+            }
+        }
         if (RoleClass.PartTimer.Data.ContainsValue(CachedPlayer.LocalPlayer.PlayerId))
         {
             PlayerControl PartTimerTarget = RoleClass.PartTimer.Data.GetPCByValue(PlayerControl.LocalPlayer.PlayerId);
@@ -684,16 +718,16 @@ public class SetNamesClass
         {
             //return TupleValue(NameColorflg, Color, RoleInfoflg)
 
-            //TODO: 表示するか否かの確認をここでする
+            if ((PlayerControl.LocalPlayer.IsImpostor() && (player.IsImpostor() || player.IsRole(RoleId.Spy, RoleId.Egoist))) || (ModeHandler.IsMode(ModeId.HideAndSeek) && player.IsImpostor()))
+                SetPlayerNameColor(player, RoleClass.ImpostorRed);
+            else
+                SetPlayerNameColor(player, Color.white);
+
             if (player == PlayerControl.LocalPlayer) return (true, null, true);
             if (CanSeeAllRole) return (true, null, true);
             if (LocalRole == RoleId.God && (RoleClass.IsMeeting || player.IsAlive())) return (true, null, true);
 
             (bool, Color?, bool) check = (false, null, false);
-            if ((PlayerControl.LocalPlayer.IsImpostor() && (player.IsImpostor() || player.IsRole(RoleId.Spy, RoleId.Egoist))) || (ModeHandler.IsMode(ModeId.HideAndSeek) && player.IsImpostor()))
-                SetPlayerNameColor(player, RoleClass.ImpostorRed);
-            else
-                SetPlayerNameColor(player, Color.white);
 
             if (CanSeeImpostor) check.Item1 = true;
             switch (LocalRole)
@@ -740,7 +774,6 @@ public class SetNamesClass
                     check.Item2 = RoleClass.ImpostorRed;
                     check.Item3 = true;
                 }
-
             }
             if (Sabotage.SabotageManager.thisSabotage == Sabotage.SabotageManager.CustomSabotage.CognitiveDeficit &&
                 ModeHandler.IsMode(ModeId.Default) && PlayerControl.LocalPlayer.IsImpostor() &&
@@ -750,8 +783,50 @@ public class SetNamesClass
                 check.Item1 = true;
                 check.Item2 = new Color32(18, 112, 214, byte.MaxValue);
             }
+            if (!RoleClass.Camouflager.IsCamouflage && (RoleClass.Celebrity.ChangeRoleView ? RoleClass.Celebrity.ViewPlayers : RoleClass.Celebrity.CelebrityPlayer).Contains(player))
+            {
+                check.Item1 = true;
+                check.Item2 = RoleClass.Celebrity.color;
+            }
+            if (!RoleClass.Camouflager.IsCamouflage && PlayerControl.LocalPlayer.IsPavlovsTeam())
+            {
+                if (RoleClass.Pavlovsdogs.PavlovsdogsPlayer.Contains(player) || RoleClass.Pavlovsowner.PavlovsownerPlayer.Contains(player))
+                {
+                    check.Item1 = true;
+                    check.Item2 = RoleClass.Pavlovsdogs.color;
+                    check.Item3 = true;
+                }
+            }
 
             return check;
+        }
+
+        void CheckSuffix(PlayerControl player)
+        {
+            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.ArsonistMark)
+                if (LocalRole == RoleId.God || LocalRole == RoleId.Arsonist || canGhostSeeRoles)
+                    if (Arsonist.IsViewIcon(player)) PlayerNameSuffixes[player.PlayerId].Arsonist = true;
+            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.DemonMark)
+                if (LocalRole == RoleId.God || LocalRole == RoleId.Demon || canGhostSeeRoles)
+                    if (Demon.IsViewIcon(player)) PlayerNameSuffixes[player.PlayerId].Demon = true;
+            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.QuarreledMark)
+                if ((canGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Quarreled.QuarreledPlayer.Count > 0)
+                {
+                    foreach (List<PlayerControl> ps in RoleClass.Quarreled.QuarreledPlayer.AsSpan())
+                    {
+                        if (ps.Contains(player) && !player.Data.Disconnected) PlayerNameSuffixes[player.PlayerId].Quarreled = true;
+                    }
+                }
+            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.LoversMark)
+                if ((canGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Lovers.LoversPlayer.Count > 0)
+                {
+                    foreach (List<PlayerControl> ps in RoleClass.Lovers.LoversPlayer.AsSpan())
+                    {
+                        if (ps.Contains(player) && !player.Data.Disconnected) PlayerNameSuffixes[player.PlayerId].Lovers = true;
+                    }
+                }
+            if (RoleClass.Jumbo.BigPlayer.Contains(player) && RoleClass.Jumbo.JumboSize.ContainsKey(player.PlayerId))
+                PlayerNameSuffixes[player.PlayerId].Jumbo = true;
         }
     }
 }

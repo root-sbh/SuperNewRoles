@@ -77,7 +77,7 @@ public class FixedUpdate
         }
     }
     public static bool IsProDown;
-    public static Stopwatch sw = new();
+    private static Stopwatch sw = new();
     public static void Postfix(PlayerControl __instance)
     {
         if (!PlayerAnimation.IsCreatedAnim(__instance.PlayerId))
@@ -108,7 +108,7 @@ public class FixedUpdate
                 sw.Start();
                 SetNamesClass.Postfix(__instance);
                 sw.Stop();
-                Logger.Info($"Time: {((double)sw.ElapsedTicks / Stopwatch.Frequency) * 1000000}ns", "SetNamesUpdate");
+                Logger.Info($"Time: {(int)((double)sw.ElapsedTicks / Stopwatch.Frequency * 1000000)}μs", "SetNamesUpdate");
                 sw.Reset();
                 NiceMechanic.FixedUpdate();
                 JackalSeer.JackalSeerFixedPatch.Postfix(__instance, PlayerControl.LocalPlayer.GetRole());
