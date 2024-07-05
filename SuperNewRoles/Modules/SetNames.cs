@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Patches;
@@ -95,10 +93,11 @@ public class SetNamesClass
     public static void InitNameTagsAndColors()
     {
         PlayerRoleInfoUpdated = new();
-        foreach (PlayerControl player in CachedPlayer.AllPlayers)
+        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
         {
             if (!PlayerNameTexts.ContainsKey(player.PlayerId)) PlayerNameTexts[player.PlayerId] = player.CurrentOutfit.PlayerName;
             if (!PlayerNameSuffixes.ContainsKey(player.PlayerId)) PlayerNameSuffixes[player.PlayerId] = new(player);
+            //TODO:この下いる？　というか出来るなら他のloopに組み込みたい
             if ((PlayerControl.LocalPlayer.IsImpostor() && (player.IsImpostor() || player.IsRole(RoleId.Spy, RoleId.Egoist))) || (ModeHandler.IsMode(ModeId.HideAndSeek) && player.IsImpostor()))
             {
                 SetPlayerNameColor(player, RoleClass.ImpostorRed);
@@ -280,11 +279,11 @@ public class SetNamesClass
         }
         return false;
     }
-    public static void SetPlayerNameColors(PlayerControl player)
+    public static void SetPlayerNameColors(PlayerControl player, Color? c = null)
     {
         var role = player.GetRole();
         if (role == RoleId.DefaultRole || (role == RoleId.Bestfalsecharge && player.IsAlive())) return;
-        SetPlayerNameColor(player, CustomRoles.GetRoleColor(player));
+        SetPlayerNameColor(player, c ?? CustomRoles.GetRoleColor(player));
     }
     public static void QuarreledSet()
     {
@@ -424,6 +423,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == quarreled) return;
                 quarreled = value;
                 changed = true;
             }
@@ -433,6 +433,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == lovers) return;
                 lovers = value;
                 changed = true;
             }
@@ -442,6 +443,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == demon) return;
                 demon = value;
                 changed = true;
             }
@@ -451,6 +453,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == arsonist) return;
                 arsonist = value;
                 changed = true;
             }
@@ -460,6 +463,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == moira) return;
                 moira = value;
                 changed = true;
             }
@@ -469,6 +473,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == satsumaimoCrew) return;
                 satsumaimoCrew = value;
                 satsumaimoMad = !value;
                 changed = true;
@@ -479,6 +484,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == satsumaimoMad) return;
                 satsumaimoMad = value;
                 satsumaimoCrew = !value;
                 changed = true;
@@ -489,6 +495,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == partTimer) return;
                 partTimer = value;
                 changed = true;
             }
@@ -498,6 +505,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == medicalTechnologist) return;
                 medicalTechnologist = value;
                 changed = true;
             }
@@ -507,6 +515,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == bullet) return;
                 bullet = value;
                 changed = true;
             }
@@ -516,6 +525,7 @@ public class SetNamesClass
         {
             set
             {
+                if (value == cupid) return;
                 cupid = value;
                 changed = true;
             }
@@ -525,7 +535,8 @@ public class SetNamesClass
         {
             set
             {
-                cupid = value;
+                if (value == jumbo) return;
+                jumbo = value;
                 changed = true;
             }
         }
@@ -540,7 +551,7 @@ public class SetNamesClass
                 if (!changed) return suffix;
                 sb.Clear();
                 if (quarreled) sb.Append(QuarreledSuffix);
-                if (lovers) sb.Append(LoversSuffix);
+                if (lovers || cupid) sb.Append(LoversSuffix);
                 if (demon) sb.Append(DemonSuffix);
                 if (arsonist) sb.Append(ArsonistSuffix);
                 if (moira) sb.Append(MoiraSuffix);
@@ -550,7 +561,6 @@ public class SetNamesClass
                 if (partTimer) sb.Append(PartTimerSuffix);
                 if (medicalTechnologist) sb.Append(Roles.Crewmate.MedicalTechnologist.ErythrocyteMark);
                 if (bullet) sb.Append(BulletSuffix);
-                if (cupid) sb.Append(Suffix);
                 suffix = sb.ToString();
                 changed = false;
                 return suffix;
@@ -568,28 +578,182 @@ public class SetNameUpdate
 {
     public static void Postfix2(PlayerControl __instance)
     {
+        SetNamesClass.InitNameTagsAndColors();
+
+        RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
         bool CanSeeAllRole =
             SetNamesClass.CanGhostSeeRoles() ||
             Debugger.canSeeRole ||
             (PlayerControl.LocalPlayer.GetRoleBase() is INameHandler nameHandler &&
             nameHandler.AmAllRoleVisible);
-        ReadOnlySpan<CachedPlayer> Players = CollectionsMarshal.AsSpan(CachedPlayer.AllPlayers);
-        //TODO:Suffixの確認どこでやるの？
+        bool CanSeeImpostor =
+            Madmate.CheckImpostor(PlayerControl.LocalPlayer) ||
+            LocalRole == RoleId.MadKiller ||
+            LocalRole == RoleId.Marlin ||
+            (RoleClass.Demon.IsCheckImpostor && LocalRole == RoleId.Demon) ||
+            (LocalRole == RoleId.Safecracker && Safecracker.CheckTask(__instance, Safecracker.CheckTasks.CheckImpostor));
+
+        ReadOnlySpan<CachedPlayer> Players = CachedPlayer.AllPlayers.AsSpan();
+        //TODO:SuffixとNameHandlerの確認どこでやるの？
         foreach (PlayerControl player in Players)
         {
             var check = CheckView(player);
-            //というかこれならApplyしちゃってよい
-            if (check.Item1) SetNamesClass.SetPlayerNameColors(player);
-            if (check.Item2) SetNamesClass.SetPlayerRoleInfo(player);
+            //というかこれならSetじゃなくApplyしちゃってよい?
+            if (check.Item1) SetNamesClass.SetPlayerNameColors(player, check.Item2);
+            if (check.Item3) SetNamesClass.SetPlayerRoleInfo(player);
+        }
+        switch (LocalRole)
+        {
+            case RoleId.PartTimer:
+                if (RoleClass.PartTimer.IsLocalOn)
+                {
+                    if (CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool())
+                    {
+                        SetNamesClass.SetPlayerRoleInfo(RoleClass.PartTimer.CurrentTarget);
+                        SetNamesClass.SetPlayerNameColors(RoleClass.PartTimer.CurrentTarget);
+                    }
+                    else
+                        SetNamesClass.PlayerNameSuffixes[RoleClass.PartTimer.CurrentTarget.PlayerId].PartTimer = true;
+                }
+                break;
+            case RoleId.TheFirstLittlePig:
+            case RoleId.TheSecondLittlePig:
+            case RoleId.TheThirdLittlePig:
+                foreach (var players in TheThreeLittlePigs.TheThreeLittlePigsPlayer)
+                {
+                    if (!players.Contains(PlayerControl.LocalPlayer)) continue;
+                    foreach (PlayerControl p in players)
+                    {
+                        SetNamesClass.SetPlayerRoleInfo(p);
+                        SetNamesClass.SetPlayerNameColors(p);
+                    }
+                    break;
+                }
+                break;
+            case RoleId.OrientalShaman:
+                foreach (var date in OrientalShaman.OrientalShamanCausative)
+                {
+                    if (date.Key != PlayerControl.LocalPlayer.PlayerId) continue;
+                    SetNamesClass.SetPlayerRoleInfo(ModHelpers.PlayerById(date.Value));
+                    SetNamesClass.SetPlayerNameColors(ModHelpers.PlayerById(date.Value));
+                }
+                break;
+            case RoleId.ShermansServant:
+                foreach (var date in OrientalShaman.OrientalShamanCausative)
+                {
+                    if (date.Value != PlayerControl.LocalPlayer.PlayerId) continue;
+                    SetNamesClass.SetPlayerRoleInfo(ModHelpers.PlayerById(date.Key));
+                    SetNamesClass.SetPlayerNameColors(ModHelpers.PlayerById(date.Key));
+                }
+                break;
+            case RoleId.Pokerface:
+                Pokerface.PokerfaceTeam team = Pokerface.GetPokerfaceTeam(PlayerControl.LocalPlayer.PlayerId);
+                if (team != null)
+                {
+                    foreach (PlayerControl member in team.TeamPlayers)
+                    {
+                        SetNamesClass.SetPlayerNameColor(member, Pokerface.RoleData.color);
+                    }
+                }
+                break;
+        }
+        CustomRoles.NameHandler(CanSeeAllRole);
+        //Suffixes
+        Pavlovsdogs.SetNameUpdate();
+        SetNamesClass.ArsonistSet();
+        SetNamesClass.DemonSet();
+        SetNamesClass.CelebritySet();
+        SetNamesClass.QuarreledSet();
+        SetNamesClass.LoversSet();
+        SetNamesClass.MoiraSet();
+        SetNamesClass.SatsumaimoSet();
+        SetNamesClass.JumboSet();
+        if (RoleClass.PartTimer.Data.ContainsValue(CachedPlayer.LocalPlayer.PlayerId))
+        {
+            PlayerControl PartTimerTarget = RoleClass.PartTimer.Data.GetPCByValue(PlayerControl.LocalPlayer.PlayerId);
+            SetNamesClass.SetPlayerRoleInfo(PartTimerTarget);
+            SetNamesClass.SetPlayerNameColors(PartTimerTarget);
+        }
+        if (RoleClass.Stefinder.IsKill)
+        {
+            SetNamesClass.SetPlayerNameColor(PlayerControl.LocalPlayer, Color.red);
+        }
+
+        SetNamesClass.ApplyAllPlayerNameTextAndColor();
+        return;
+
+
+        ValueTuple<bool, Color?, bool> CheckView(PlayerControl player)
+        {
+            //return TupleValue(NameColorflg, Color, RoleInfoflg)
+
+            //TODO: 表示するか否かの確認をここでする
+            if (player = PlayerControl.LocalPlayer) return (true, null, true);
+            if (CanSeeAllRole) return (true, null, true);
+            if (LocalRole == RoleId.God && (RoleClass.IsMeeting || player.IsAlive())) return (true, null, true);
+
+            (bool, Color?, bool) check = (false, null, false);
+
+            if (CanSeeImpostor) check.Item1 = true;
+            switch (LocalRole)
+            {
+                case RoleId.Finder:
+                    if (RoleClass.Finder.IsCheck && player.IsMadRoles())
+                    {
+                        check.Item1 = true;
+                        check.Item2 = Color.red;
+                    }
+                    break;
+                case RoleId.Dependents:
+                    //TODO: Containsが遅いならHashSetに変更、それかPostfix2内のSwitch内でチェックをする？
+                    if (RoleClass.Vampire.VampirePlayer.Contains(player)) check.Item1 = true;
+                    break;
+                case RoleId.Vampire:
+                    if (RoleClass.Dependents.DependentsPlayer.Contains(player)) check.Item1 = true;
+                    break;
+                case RoleId.Fox:
+                case RoleId.FireFox:
+                    if (RoleClass.Fox.FoxPlayer.Contains(player) || FireFox.FireFoxPlayer.Contains(player))
+                    {
+                        if (FireFox.FireFoxIsCheckFox.GetBool() || player.IsRole(PlayerControl.LocalPlayer.GetRole())) check = (true, null, true);
+                    }
+                    break;
+                case RoleId.OrientalShaman:
+                    if (OrientalShaman.IsKiller(player)) check.Item1 = true;
+                    break;
+            }
+            if (PlayerControl.LocalPlayer.IsImpostor())
+            {
+                if (RoleClass.SideKiller.MadKillerPlayer.Contains(player))
+                {
+                    check.Item1 = true;
+                    check.Item2 = RoleClass.ImpostorRed;
+                }
+            }
+            if ((PlayerControl.LocalPlayer.IsJackalTeam() && !PlayerControl.LocalPlayer.IsFriendRoles()) ||
+                JackalFriends.CheckJackal(PlayerControl.LocalPlayer))
+            {
+                if (player.IsJackalTeam() && (!player.IsFriendRoles() || player.IsRole(RoleId.Bullet)))
+                {
+                    check.Item1 = true;
+                    check.Item2 = RoleClass.ImpostorRed;
+                    check.Item3 = true;
+                }
+
+            }
+            if (Sabotage.SabotageManager.thisSabotage == Sabotage.SabotageManager.CustomSabotage.CognitiveDeficit &&
+                ModeHandler.IsMode(ModeId.Default) && PlayerControl.LocalPlayer.IsImpostor() &&
+                player.IsAlive() && !Sabotage.CognitiveDeficit.Main.OKPlayers.IsCheckListPlayerControl(player) &&
+                !(player.IsImpostor() || player.IsRole(RoleId.MadKiller)))
+            {
+                check.Item1 = true;
+                check.Item2 = new Color32(18, 112, 214, byte.MaxValue);
+            }
+
+            return check;
         }
     }
-    public static ValueTuple<bool, bool> CheckView(PlayerControl player)
-    {
-        //return TupleValue(NameColor, RoleInfo)
 
-        //TODO: 表示するか否かの確認をここでする
-        return (false, false);
-    }
     public static void Postfix(PlayerControl __instance)
     {
         //TODO: 本来なら毎フレームではなくRole変更やSabotage、タスク完了など、名前/RoleInfoの変更時のみ呼び出されるべき
