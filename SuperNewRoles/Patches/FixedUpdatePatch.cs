@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using AmongUs.GameOptions;
 using HarmonyLib;
 using Il2CppSystem.Runtime.Remoting.Lifetime;
@@ -76,7 +77,7 @@ public class FixedUpdate
         }
     }
     public static bool IsProDown;
-
+    public static Stopwatch sw = new();
     public static void Postfix(PlayerControl __instance)
     {
         if (!PlayerAnimation.IsCreatedAnim(__instance.PlayerId))
@@ -104,7 +105,11 @@ public class FixedUpdate
             case ModeId.Default:
                 DeviceClass.FixedUpdate();
                 SabotageManager.Update();
-                SetNameUpdate.Postfix(__instance);
+                sw.Start();
+                SetNamesClass.Postfix(__instance);
+                sw.Stop();
+                Logger.Info($"Time: {((double)sw.ElapsedTicks / Stopwatch.Frequency) * 1000000}ns", "SetNamesUpdate");
+                sw.Reset();
                 NiceMechanic.FixedUpdate();
                 JackalSeer.JackalSeerFixedPatch.Postfix(__instance, PlayerControl.LocalPlayer.GetRole());
                 Psychometrist.FixedUpdate();
