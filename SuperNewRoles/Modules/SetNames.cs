@@ -280,10 +280,10 @@ public class SetNamesClass
         }
         return false;
     }
-    public static void SetPlayerNameColors(PlayerControl player, Color? c = null, bool forceUpdate = false)
+    public static void SetPlayerNameColors(PlayerControl player, Color? c = null)
     {
         var role = player.GetRole();
-        if (!forceUpdate && (role == RoleId.DefaultRole || (role == RoleId.Bestfalsecharge && player.IsAlive()))) return;
+        if (role == RoleId.DefaultRole || (role == RoleId.Bestfalsecharge && player.IsAlive())) return;
         SetPlayerNameColor(player, c ?? CustomRoles.GetRoleColor(player));
     }
     public static void QuarreledSet()
