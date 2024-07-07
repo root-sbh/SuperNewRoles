@@ -201,7 +201,7 @@ public static class Main
         {
             if (PlayerControl.LocalPlayer.Data.PlayerName == PlayerControl.LocalPlayer.GetDefaultName())
             {
-                SetNameUpdate.Postfix(CachedPlayer.LocalPlayer);
+                SetNamesClass.Postfix(CachedPlayer.LocalPlayer);
             }
             return;
         }
@@ -310,7 +310,7 @@ public static class Main
             return;
         }
 
-        SetNameUpdate.Postfix(CachedPlayer.LocalPlayer);
+        SetNamesClass.Postfix(CachedPlayer.LocalPlayer);
         UpdateTime -= Time.deltaTime;
         if (UpdateTime <= 0)
         {

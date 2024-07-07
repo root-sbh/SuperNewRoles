@@ -77,18 +77,12 @@ public static class Main
             }
         }
         bool IsOK = true;
-        foreach (PlayerControl p3 in CachedPlayer.AllPlayers)
+        foreach (PlayerControl p3 in CachedPlayer.AllPlayers.AsSpan())
         {
             if (p3.IsAlive() && !OKPlayers.IsCheckListPlayerControl(p3))
             {
                 IsOK = false;
-                if (PlayerControl.LocalPlayer.IsImpostor())
-                {
-                    if (!(p3.IsImpostor() || p3.IsRole(RoleId.MadKiller)))
-                    {
-                        SetNamesClass.SetPlayerNameColor(p3, new Color32(18, 112, 214, byte.MaxValue));
-                    }
-                }
+                break;
             }
         }
         if (IsOK)

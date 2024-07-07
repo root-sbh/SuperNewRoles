@@ -61,7 +61,7 @@ public static class FixedUpdate
                 FastDestroyableSingleton<HudManager>.Instance.KillButton.DoClick();
             }
         }
-        SetNameUpdate.Postfix(PlayerControl.LocalPlayer);
+        SetNamesClass.Postfix(PlayerControl.LocalPlayer);
         if (!AmongUsClient.Instance.AmHost) return;
         if (PlayerControl.LocalPlayer.IsRole(RoleId.PoliceSurgeon))
         {
