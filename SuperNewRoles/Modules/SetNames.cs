@@ -34,7 +34,6 @@ public class SetNamesClass
     public static HashSet<int> PlayerNameColorUpdated = new();
     public static HashSet<int> PlayerRoleInfoUpdated = new();
 
-
     public static void ApplyPlayerNameView(PlayerControl p)
     {
         if (PlayerNameTexts.TryGetValue(p.PlayerId, out string n)) p.NameText().text = $"{(ModHelpers.HidePlayerName(PlayerControl.LocalPlayer, p) ? string.Empty : n)}{PlayerNameSuffixes[p.PlayerId].Suffix}";
@@ -242,6 +241,7 @@ public class SetNamesClass
         return false;
     }
 
+    //TODO: 本来なら毎フレームではなくRole変更やSabotage、タスク完了など、名前/RoleInfoの変更時のみ呼び出されるべき
     public static void Postfix(PlayerControl __instance)
     {
         RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
@@ -679,6 +679,7 @@ public class SetNamesClass
         }
     }
 }
+
 //public class SetNameUpdate
 //{
 //    public static void Postfix(PlayerControl __instance)
