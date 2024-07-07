@@ -220,13 +220,11 @@ public class MedicalTechnologist : RoleBase, ICrewmate, ISupportSHR, ICustomButt
         {
             PlayerControl first = ModHelpers.PlayerById(SampleCrews.FirstCrew);
             SetNamesClass.PlayerNameSuffixes[first.PlayerId].MedicalTechnologist = true;
-            //SetNamesClass.SetPlayerNameText(first, $"{first.NameText().text}{ErythrocyteMark}");
         }
         if (SampleCrews.SecondCrew != byte.MaxValue)
         {
             PlayerControl second = ModHelpers.PlayerById(SampleCrews.SecondCrew);
             SetNamesClass.PlayerNameSuffixes[second.PlayerId].MedicalTechnologist = true;
-            //SetNamesClass.SetPlayerNameText(Second, $"{Second.NameText().text}{ErythrocyteMark}");
         }
     }
 
