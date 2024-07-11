@@ -339,11 +339,10 @@ public class SetNamesClass
                 }
                 break;
         }
-        if (RoleClass.PartTimer.Data.ContainsValue(CachedPlayer.LocalPlayer.PlayerId))
+        foreach (byte MyPartTimer in RoleClass.PartTimer.Data.Where(x => x.Value == CachedPlayer.LocalPlayer.PlayerId).Select(x => x.Key))
         {
-            PlayerControl PartTimerTarget = RoleClass.PartTimer.Data.GetPCByValue(PlayerControl.LocalPlayer.PlayerId);
-            SetPlayerRoleInfo(PartTimerTarget);
-            SetPlayerNameColor(PartTimerTarget);
+            SetPlayerRoleInfo(ModHelpers.GetPlayerControl(MyPartTimer));
+            SetPlayerNameColor(ModHelpers.GetPlayerControl(MyPartTimer));
         }
 
         ReadOnlySpan<CachedPlayer> Players = CachedPlayer.AllPlayers.AsSpan();

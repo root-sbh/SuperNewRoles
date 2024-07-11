@@ -213,4 +213,10 @@ public class PlayerData<T>
             _data = new();
         return _data.GetEnumerator();
     }
+    public IEnumerable<KeyValuePair<byte, T>> Where(Func<KeyValuePair<byte, T>, bool> func)
+    {
+        if (_data == null)
+            _data = new();
+        return _data.Where(func);
+    }
 }
