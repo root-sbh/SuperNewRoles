@@ -339,7 +339,7 @@ public class SetNamesClass
                 }
                 break;
         }
-        foreach (byte MyPartTimer in RoleClass.PartTimer.Data.Where(x => x.Value == CachedPlayer.LocalPlayer.PlayerId).Select(x => x.Key))
+        foreach (byte MyPartTimer in RoleClass.PartTimer.Data.WhereSelect(x => x.Value == CachedPlayer.LocalPlayer.PlayerId, x => x.Key))
         {
             SetPlayerRoleInfo(ModHelpers.GetPlayerControl(MyPartTimer));
             SetPlayerNameColor(ModHelpers.GetPlayerControl(MyPartTimer));
