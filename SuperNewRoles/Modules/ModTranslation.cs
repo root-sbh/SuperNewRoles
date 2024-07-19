@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using AmongUs.Data;
+using Il2CppSystem.CodeDom;
+using UnityEngine.UIElements.UIR;
 
 namespace SuperNewRoles.Modules;
 
@@ -51,6 +53,17 @@ public static class ModTranslation
     }
 
     public static string GetString(string key, params object[] args) => string.Format(GetString(key), args);
+
+    public static string GetString<T1, T2, T3, T4> (string key, T1? value1, T2? value2, T3? value3, T4? value4)
+    {
+        switch (key)
+        {
+            case "":
+                if (value1 is not int) return "";
+                return $"{value1}";
+        }
+        return string.Format(GetString(key), value1, value2, value3, value4);
+    }
 
     /// <summary>
     /// 翻訳語の文章から翻訳キーを取得する。
