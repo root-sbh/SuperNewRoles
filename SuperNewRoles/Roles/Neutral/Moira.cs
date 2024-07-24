@@ -29,7 +29,9 @@ public class Moira : RoleBase, INeutral, IMeetingHandler, IWrapUpHandler, INameH
     );
     public static new OptionInfo Optioninfo = new(RoleId.Moira, 303300, true, optionCreator: CreateOption, MaxPlayer: 1);
     public static new IntroInfo Introinfo = new(RoleId.Moira, 1, RoleTypes.Shapeshifter);
-    
+
+    public static readonly string Suffix = "(⇔)".Color(Roleinfo.RoleColor);
+
     public static CustomOption AbilityLimit;
     public static CustomOption ChangeVote;
     private static void CreateOption()
@@ -372,7 +374,7 @@ public class Moira : RoleBase, INeutral, IMeetingHandler, IWrapUpHandler, INameH
     public void OnHandleAllPlayer()
     {
         if (OldLimit > 0) return;
-        SetNamesClass.SetPlayerNameText(Player, $"{Player.NameText().text} {"(⇔)".Color(Roleinfo.RoleColor)}");
+        SetNamesClass.PlayerNameSuffixes[Player.PlayerId].Moira = true;
     }
 
     public void RpcReader(MessageReader reader)

@@ -21,11 +21,11 @@ public interface INameHandler
     /// </summary>
     public void OnHandleName() { }
     /// <summary>
-    /// 全員の役職を見れる人が実行するやつ
+    /// 自分が全員の役職を見られる場合に実行するやつ
     /// </summary>
     public void OnHandleDeadPlayer() { }
     /// <summary>
-    /// 全員に見えるやつ
+    /// 全員視点で見える名前を処理するやつ
     /// </summary>
     public void OnHandleAllPlayer() { }
 }

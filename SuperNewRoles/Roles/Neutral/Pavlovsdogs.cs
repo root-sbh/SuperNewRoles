@@ -72,17 +72,10 @@ public class PavlovsDogs : RoleBase, INeutral, IVentAvailable, IImpostorVision, 
         => CurrentOwner = owner;
 
     public void OnHandleName()
-        => SeePavlovsTeam();
-
-    public static void SeePavlovsTeam()
     {
-        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
-        {
-            if (!player.IsPavlovsTeam())
-                continue;
-            SetNamesClass.SetPlayerRoleInfo(player);
-            SetNamesClass.SetPlayerNameColors(player);
-        }
+        if (!RoleClass.Camouflager.IsCamouflage) return;
+        SetNamesClass.SetPlayerRoleInfo(CurrentOwner.Player);
+        SetNamesClass.SetPlayerNameColors(CurrentOwner.Player);
     }
 
     public bool OnCheckMurderPlayerAmKiller(PlayerControl target)

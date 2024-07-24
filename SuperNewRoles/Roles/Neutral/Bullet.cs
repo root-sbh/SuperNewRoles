@@ -20,6 +20,8 @@ public class Bullet : RoleBase, ISidekick, INeutral, IVentAvailable, ISaboAvaila
         TeamType.Neutral
         );
 
+    public static readonly string Suffix = ModHelpers.Cs(WaveCannonJackal.Roleinfo.RoleColor, "☆");
+
     public bool CanUseSabo => WaveCannonJackal.Optioninfo.CanUseSabo;
     public bool CanUseVent => WaveCannonJackal.Optioninfo.CanUseVent;
     public bool IsImpostorVision => WaveCannonJackal.Optioninfo.IsImpostorVision;

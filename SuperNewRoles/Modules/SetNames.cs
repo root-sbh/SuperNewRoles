@@ -24,11 +24,9 @@ public class SetNamesClass
     public static string LoversSuffix = ModHelpers.Cs(RoleClass.Lovers.color, " ♥");
     public static string DemonSuffix = ModHelpers.Cs(RoleClass.Demon.color, " ▲");
     public static string ArsonistSuffix = ModHelpers.Cs(RoleClass.Arsonist.color, " §");
-    public static string MoiraSuffix = " (→←)";
     public static string SatsumaimoCrewSuffix = ModHelpers.Cs(Palette.White, " (C)");
     public static string SatsumaimoMadSuffix = ModHelpers.Cs(RoleClass.ImpostorRed, " (M)");
     public static string PartTimerSuffix = ModHelpers.Cs(RoleClass.PartTimer.color, "◀");
-    public static string BulletSuffix = ModHelpers.Cs(WaveCannonJackal.Roleinfo.RoleColor, "☆");
 
     public static Dictionary<int, string> PlayerNameTexts = new();
     public static Dictionary<int, PlayerSuffixBuilder> PlayerNameSuffixes = new();
@@ -258,12 +256,17 @@ public class SetNamesClass
             LocalRole == RoleId.Marlin ||
             (RoleClass.Demon.IsCheckImpostor && LocalRole == RoleId.Demon) ||
             (LocalRole == RoleId.Safecracker && Safecracker.CheckTask(__instance, Safecracker.CheckTasks.CheckImpostor));
+        int CanSeeImpostorRoleTurnRemaining = PlusGameOptions.CanSeeImpostorRoleTurn.GetInt() - ReportDeadBodyPatch.MeetingCount.all;
+        bool CanSeeImpostorRole =
+            PlayerControl.LocalPlayer.IsImpostor() &&
+            CustomOptionHolder.EgoistOption.GetSelection() is 0 && CustomOptionHolder.SpyOption.GetSelection() is 0 &&
+            (CanSeeImpostorRoleTurnRemaining < 0 || (CanSeeImpostorRoleTurnRemaining == 0 && !RoleClass.IsMeeting));
 
         PlayerNameColorUpdated.Clear();
         PlayerRoleInfoUpdated.Clear();
 
         CheckSuffixes();
-        CustomRoles.NameHandler(CanSeeAllRole);
+        CustomRoles.NameHandler();
 
         switch (LocalRole)
         {
@@ -376,7 +379,12 @@ public class SetNamesClass
 
             (bool, Color?, bool) check = (false, null, false);
 
-            if (CanSeeImpostor) check.Item1 = true;
+            if (player.IsImpostorAddedFake())
+            {
+                if (CanSeeImpostor) check.Item1 = true;
+                if (CanSeeImpostorRole) check.Item3 = true;
+            }
+
             switch (LocalRole)
             {
                 case RoleId.Finder:
@@ -434,13 +442,6 @@ public class SetNamesClass
             {
                 check.Item1 = true;
                 check.Item2 = RoleClass.Celebrity.color;
-            }
-            if (!RoleClass.Camouflager.IsCamouflage && PlayerControl.LocalPlayer.IsPavlovsTeam())
-            {
-                if (RoleClass.Pavlovsdogs.PavlovsdogsPlayer.Contains(player) || RoleClass.Pavlovsowner.PavlovsownerPlayer.Contains(player))
-                {
-                    check = (true, RoleClass.Pavlovsdogs.color, true);
-                }
             }
 
             return check;
@@ -653,6 +654,10 @@ public class SetNamesClass
         {
             get
             {
+                //TODO:HashSetを用意して、Value(eg: LoversSuffix)を入れておく。
+                //こうするとループで取得するだけでOK
+                //かつ、更新されたかは要素数を見ればわかる(同じValueは入らないので)
+                //RoleBaseでも、OnHandleName内でSetSuffix()とか用意しとけばよさそう(HashSetへの登録を行う)
                 if (bot) return string.Empty;
                 if (!changed) return suffix;
                 sb.Clear();
@@ -660,13 +665,13 @@ public class SetNamesClass
                 if (lovers || cupid) sb.Append(LoversSuffix);
                 if (demon) sb.Append(DemonSuffix);
                 if (arsonist) sb.Append(ArsonistSuffix);
-                if (moira) sb.Append(MoiraSuffix);
+                if (moira) sb.Append(Roles.Neutral.Moira.Suffix);
                 if (satsumaimoCrew) sb.Append(SatsumaimoCrewSuffix);
                 if (satsumaimoMad) sb.Append(SatsumaimoMadSuffix);
                 if (jumbo) sb.Append($"({(int)(RoleClass.Jumbo.JumboSize[playerid] * 15)})");
                 if (partTimer) sb.Append(PartTimerSuffix);
                 if (medicalTechnologist) sb.Append(Roles.Crewmate.MedicalTechnologist.ErythrocyteMark);
-                if (bullet) sb.Append(BulletSuffix);
+                if (bullet) sb.Append(Roles.Neutral.Bullet.Suffix);
                 suffix = sb.ToString();
                 changed = false;
                 return suffix;

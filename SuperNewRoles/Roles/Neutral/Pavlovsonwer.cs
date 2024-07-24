@@ -105,7 +105,14 @@ public class PavlovsOwner : RoleBase, INeutral, INameHandler, IRpcHandler, IFixe
     public int CreateCountLimit = OwnerDogLimit.GetInt();
 
     public void OnHandleName()
-        => PavlovsDogs.SeePavlovsTeam();
+    {
+        if (!RoleClass.Camouflager.IsCamouflage) return;
+        foreach (var dogs in CreatedDogs.AsSpan())
+        {
+            SetNamesClass.SetPlayerRoleInfo(dogs.Player);
+            SetNamesClass.SetPlayerNameColors(dogs.Player);
+        }
+    }
 
     public void RpcReader(MessageReader reader)
     {
