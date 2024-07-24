@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using AmongUs.GameOptions;
 using HarmonyLib;
 using SuperNewRoles.Mode;
 using SuperNewRoles.Patches;
@@ -11,13 +12,38 @@ public class HandleGhostRole
     [HarmonyPatch(typeof(RoleManager), nameof(RoleManager.AssignRoleOnDeath))]
     public class AssignRole
     {
-        public static bool Prefix([HarmonyArgument(0)] PlayerControl player)
+        public static bool Prefix([HarmonyArgument(0)] PlayerControl player, bool specialRolesAllowed)
         {
             if (!ModeHandler.IsMode(ModeId.Default, ModeId.Werewolf, ModeId.SuperHostRoles)) return true; // クラシック以外は弾く
             if (player.IsAlive()) return false; //生存者は弾く
 
-            if (GetReleaseHauntAbility(player)) return true; // 憑依可能な設定なら
-            else return false; // 憑依不可能な設定なら
+            if (GetReleaseHauntAbility(player))
+            {
+                if (!player.Data.Role.IsImpostor && specialRolesAllowed)
+                {
+                    // TryAssignSpecialGhostRoles
+                    RoleTypes roleTypes = RoleTypes.GuardianAngel;
+                    int num = CachedPlayer.AllPlayers.Count((CachedPlayer player) => player.Data.IsDead && !player.Data.Role.IsImpostor);
+                    IRoleOptionsCollection roleOptions = GameOptionsManager.Instance.CurrentGameOptions.RoleOptions;
+                    if (AmongUsClient.Instance.NetworkMode == NetworkModes.FreePlay)
+                    {
+                        player.RpcSetRole(roleTypes, true);
+                    }
+                    else if (num <= roleOptions.GetNumPerGame(roleTypes))
+                    {
+                        int chancePerGame = roleOptions.GetChancePerGame(roleTypes);
+                        if (HashRandom.Next(101) < chancePerGame)
+                        {
+                            player.RpcSetRole(roleTypes, true);
+                        }
+                    }
+                }
+                if (!RoleManager.IsGhostRole(player.Data.Role.Role))
+                    player.RpcSetRole(player.Data.Role.DefaultGhostRole, true);
+                return false; // 憑依可能な設定なら
+            }
+            else
+                return false; // 憑依不可能な設定なら
         }
 
         public static void Postfix([HarmonyArgument(0)] PlayerControl player)
@@ -30,7 +56,7 @@ public class HandleGhostRole
             bool isAssign = HandleAssign(player);
             if (isAssign && ModeHandler.IsMode(ModeId.SuperHostRoles)) // 幽霊役職が配布された非導入者の役職を守護天使に変更する
             {
-                if (!player.IsMod()) player.RpcSetRole(AmongUs.GameOptions.RoleTypes.GuardianAngel);
+                if (!player.IsMod()) player.RpcSetRole(AmongUs.GameOptions.RoleTypes.GuardianAngel, true);
             }
         }
 
@@ -69,7 +95,7 @@ public class HandleGhostRole
         var Team = TeamRoleType.Error;
         Team = player.IsCrew() ? TeamRoleType.Crewmate : player.IsNeutral() ? TeamRoleType.Neutral : TeamRoleType.Impostor;
         List<IntroData> GhostRoles = new();
-        foreach (IntroData intro in IntroData.GhostRoleData)
+        foreach (IntroData intro in IntroData.GhostRoleData.AsSpan())
         {
             if (intro.Team != Team) continue;
             GhostRoles.Add(intro);
@@ -98,7 +124,7 @@ public class HandleGhostRole
 
         player.SetRoleRPC(assignrole);
         if (ModeHandler.IsMode(ModeId.SuperHostRoles) && !player.IsMod())
-            player.RpcSetRole(AmongUs.GameOptions.RoleTypes.GuardianAngel);
+            player.RpcSetRole(AmongUs.GameOptions.RoleTypes.GuardianAngel, true);
 
         return true;
     }
@@ -109,7 +135,7 @@ public class HandleGhostRole
         List<RoleId> Assigns = new();
         List<RoleId> Assignnos = new();
         ModeId mode = ModeHandler.GetMode();
-        foreach (IntroData data in introData)
+        foreach (IntroData data in introData.AsSpan())
         {
             //その役職のプレイヤー数を取得
             var count = AllRoleSetClass.GetPlayerCount(data.RoleId);
@@ -120,7 +146,7 @@ public class HandleGhostRole
 
             //確率が0%ではないかつ、
             //もう割り当てきられてないか(最大人数まで割り当てられていないか)
-            if ((option.isSHROn || mode != ModeId.SuperHostRoles) && selection != 0 && count > CachedPlayer.AllPlayers.ToArray().ToList().Count((CachedPlayer pc) => pc.PlayerControl.IsGhostRole(data.RoleId)))
+            if ((option.isSHROn || mode != ModeId.SuperHostRoles) && selection != 0 && count > CachedPlayer.AllPlayers.Count((CachedPlayer pc) => pc.PlayerControl.IsGhostRole(data.RoleId)))
             {
                 //100%なら100%アサインListに入れる
                 if (selection == 10)

@@ -19,12 +19,12 @@ public static class AssetManager
     }
     private static Dictionary<byte, Dictionary<string, UnityEngine.Object>> _cachedAssets { get; } = new();
     private static Dictionary<byte, AssetBundle> Bundles { get; } = new(3);
-    private static Tuple<AssetBundleType, string>[] AssetPathes = new Tuple<AssetBundleType, string>[4]
+    private static (AssetBundleType, string)[] AssetPathes =
     {
-        new(AssetBundleType.Sprite, "snrsprites"),
-        new(AssetBundleType.Sound, "SNRSounds"),
-        new(AssetBundleType.Wavecannon, "WaveCannon.WaveCannonEffects"),
-        new(AssetBundleType.BodyBuilder, "BodyBuilder.BodyBuilderPoses")
+        (AssetBundleType.Sprite, "snrsprites"),
+        (AssetBundleType.Sound, "SNRSounds"),
+        (AssetBundleType.Wavecannon, "WaveCannon.WaveCannonEffects"),
+        (AssetBundleType.BodyBuilder, "BodyBuilder.BodyBuilderPoses")
     };
     public static void Load()
     {
@@ -51,10 +51,11 @@ public static class AssetManager
 
                 BundleStream.Dispose();
                 Logger.Info($"Loaded AssetBundle:" + data.Item1.ToString());
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
-                Logger.Error($"Failed to load AssetBundle:" + data.Item1.ToString(),"LoadAssetBundle");
-                Logger.Error(e.ToString(),"LoadAssetBundle");
+                Logger.Error($"Failed to load AssetBundle:" + data.Item1.ToString(), "LoadAssetBundle");
+                Logger.Error(e.ToString(), "LoadAssetBundle");
             }
         }
         Logger.Info("-------End LoadAssetBundle-------");
@@ -73,7 +74,7 @@ public static class AssetManager
             return null;
         //キャッシュにあるならそれを返す
         Il2CppSystem.Type il2CppType = Il2CppType.Of<T>();
-        if (_data.TryGetValue(path+il2CppType.ToString(), out UnityEngine.Object result))
+        if (_data.TryGetValue(path + il2CppType.ToString(), out UnityEngine.Object result))
             return result.TryCast<T>();
         //読み込む
         T rs = Bundles[(byte)assetBundleType]

@@ -53,7 +53,7 @@ public static class FalseCharges
                         {
                             try
                             {
-                                foreach (PlayerControl p in CachedPlayer.AllPlayers)
+                                foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
                                 {
                                     if (!p.Data.Disconnected && p.PlayerId != data.Key)
                                     {
@@ -84,7 +84,7 @@ public static class FalseCharges
                             {
                                 SuperNewRolesPlugin.Logger.LogInfo("[SHR]冤罪師WrapUpエラー:" + e);
                             }
-                            EndGameCheck.CustomEndGame(MapUtilities.CachedShipStatus, GameOverReason.HumansByVote, false);
+                            EndGameCheck.CustomEndGame(MapUtilities.CachedShipStatus, CustomGameOverReason.FalseChargesWin, false);
                         }
                     }
                 }

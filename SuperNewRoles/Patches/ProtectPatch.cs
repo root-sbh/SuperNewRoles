@@ -131,7 +131,7 @@ static class CheckProtectPatch
         }
 
         Color roleColor = angelRole != RoleId.DefaultRole ? CustomRoles.GetRoleColor(angelRole) : CustomRoles.GetRoleColor(angel.GetRole());
-        string colorCode = string.Format($"#{CustomOptionHolder.ToByte(roleColor.r):X2}{CustomOptionHolder.ToByte(roleColor.g):X2}{CustomOptionHolder.ToByte(roleColor.b):X2}{CustomOptionHolder.ToByte(roleColor.a):X2}");
+        string colorCode = $"#{ModHelpers.ToByte(roleColor.r):X2}{ModHelpers.ToByte(roleColor.g):X2}{ModHelpers.ToByte(roleColor.b):X2}{ModHelpers.ToByte(roleColor.a):X2}";
 
         return (announceBuilder.ToString(), colorCode);
     }
@@ -155,7 +155,7 @@ public static class ReleaseGhostAbility
     /// </summary>
     public static void MeetingHudStartPostfix()
     {
-        foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
         {
             if (player == null || player.IsBot()) continue;
             if (player.IsDead()) FarstTurnHasAlreadyElapsed[player.PlayerId] = true;

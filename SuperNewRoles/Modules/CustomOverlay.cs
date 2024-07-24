@@ -333,7 +333,7 @@ public class CustomOverlays
     private static void PlayerDataDictionaryAdd_CoBeginPostfix()
     {
         playerDataDictionary = new();
-        foreach (PlayerControl p in CachedPlayer.AllPlayers)
+        foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             if (!p.IsBot() || SuperNewRolesPlugin.IsBeta || ConfigRoles.DebugMode.Value)
                 playerDataDictionary.Add(p.PlayerId, GetPlayerData(p));
 
@@ -580,7 +580,7 @@ public class CustomOverlays
             int percentInt = option.Rate * 10; // 10をかけている理由 => [0.10,20...90,100]というstring[]で表された確率をGetSelectionで取得している為。
             string percent = percentInt < 100 ? $"  {percentInt}" : $"{percentInt}"; // 配役確率の文字数調整
 
-            foreach (CustomOption opt in option.children)
+            foreach (CustomOption opt in option.children.AsSpan())
             {
                 if (opt.GetName() == CustomOptionHolder.SheriffPlayerCount.GetName())
                 {
@@ -652,7 +652,7 @@ public class CustomOverlays
         }
         else // ゲーム開始前は表示時に情報を取得する。
         {
-            foreach (PlayerControl p in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (p.IsBot() && !(SuperNewRolesPlugin.IsBeta || ConfigRoles.DebugMode.Value)) continue;
                 string data = GetPlayerData(p);
@@ -679,10 +679,17 @@ public class CustomOverlays
         else friendCode = ModTranslation.GetString("NoFriendCode"); // クライアントデータやフレンドコードがない場合, フレンドコードがブランクだった場合
         if (DataManager.Settings.Gameplay.StreamerMode) friendCode = "**********#****"; // バニラ設定[配信者モード]が有効時フレンドコードを伏字風にする
 
+        // クルーカラーを取得
+        var canUseIndex = Palette.PlayerColors.Length > p.Data.DefaultOutfit.ColorId && p.Data.DefaultOutfit.ColorId >= 0; // 配列の範囲の確認
+        var bodyColor = canUseIndex ? Palette.PlayerColors[p.Data.DefaultOutfit.ColorId] : Palette.PlayerColors[(int)CustomCosmetics.CustomColors.ColorType.Sunrise]; // Errorはサンライズ扱いに
+        var bodyColorName = canUseIndex ? OutfitManager.GetColorTranslation(Palette.ColorNames[p.Data.DefaultOutfit.ColorId]) : "Load Error";
+
         // プレイヤー名とクルーカラーを■で表記
-        data += $"<size=150%>{p.PlayerId + 1}. {p.name}{ModHelpers.Cs(Palette.PlayerColors[p.Data.DefaultOutfit.ColorId], "■")}</size>\n";
+        var quadrangle = ModHelpers.Cs(bodyColor, "■");
+        data += $"<size=150%>{p.PlayerId + 1}. {p.name}{quadrangle}</size>\n";
+
         // クルーカラーとカラー名を表記
-        data += $"<pos=10%>{ModHelpers.Cs(Palette.PlayerColors[p.Data.DefaultOutfit.ColorId], "■")} : {OutfitManager.GetColorTranslation(Palette.ColorNames[p.Data.DefaultOutfit.ColorId])}\n";
+        data += $"<pos=10%>{quadrangle} : {bodyColorName}\n";
         data += $"<size=90%><pos=10%>{ModTranslation.GetString("SNRIntroduction")} : {(p.IsMod() ? "〇" : "×")}\n"; // Mod導入状態
         data += $"<pos=10%>FriendCode : {friendCode}\n"; // フレンドコード
         data += $"<pos=10%>Platform : {p.GetClient()?.PlatformData?.Platform}</size>\n"; // プラットフォーム
@@ -784,7 +791,7 @@ public class CustomOverlays
         int index = 0;
         ModeId modeId = ModeHandler.GetMode(false);
 
-        foreach (CustomOption option in CustomOption.options)
+        foreach (CustomOption option in CustomOption.options.AsSpan())
         {
             if (option.GetSelection() == 0) continue;
             if (option.type != CustomOptionType.MatchTag) continue;

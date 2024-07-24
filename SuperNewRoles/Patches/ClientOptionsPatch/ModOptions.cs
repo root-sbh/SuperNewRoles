@@ -24,6 +24,7 @@ public static class ClientModOptionsPatch
             new("IsLightAndDarker", () => ConfigRoles.IsLightAndDarker.Value = !ConfigRoles.IsLightAndDarker.Value, ConfigRoles.IsLightAndDarker.Value),
             new("ReplayOptions", OpenReplayWindow, true),
             new("IsMuteLobbyBGM", () => ConfigRoles.IsMuteLobbyBGM.Value = !ConfigRoles.IsMuteLobbyBGM.Value, ConfigRoles.IsMuteLobbyBGM.Value),
+            new("IsSaveLogWhenEndGame", () => ConfigRoles.IsSaveLogWhenEndGame.Value = !ConfigRoles.IsSaveLogWhenEndGame.Value, ConfigRoles.IsSaveLogWhenEndGame.Value),
     };
     private static GameObject popUp;
     private static TextMeshPro titleText;
@@ -237,7 +238,7 @@ public static class ClientModOptionsPatch
         button.Background.color = button.onState ? Color.green : Palette.ImpostorRed;
     }
     public static List<SelectionBehaviour> ReplayOptions = new() { new SelectionBehaviour("リプレイを収録する",()=>{
-        foreach (GameObject obj in ReplayEnableObjects)
+        foreach (GameObject obj in ReplayEnableObjects.AsSpan())
         {
             obj.SetActive(!ConfigRoles.ReplayEnable.Value);
         }
@@ -324,7 +325,7 @@ public static class ClientModOptionsPatch
             if (i > 0)
                 ReplayEnableObjects.Add(button.gameObject);
         }
-        foreach (GameObject obj in ReplayEnableObjects)
+        foreach (GameObject obj in ReplayEnableObjects.AsSpan())
         {
             obj.SetActive(ConfigRoles.ReplayEnable.Value);
         }

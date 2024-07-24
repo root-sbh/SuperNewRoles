@@ -1,5 +1,6 @@
 global using SuperNewRoles.Modules;
 using System;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,6 +13,7 @@ using HarmonyLib;
 using Il2CppInterop.Runtime.Injection;
 using SuperNewRoles.CustomModOption;
 using SuperNewRoles.CustomObject;
+using SuperNewRoles.MapDatabase;
 using SuperNewRoles.Roles.Role;
 using SuperNewRoles.Roles.RoleBases;
 using SuperNewRoles.SuperNewRolesWeb;
@@ -103,7 +105,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
         WebAccountManager.Load();
         ContentManager.Load();
         //WebAccountManager.SetToken("XvSwpZ8CsQgEksBg");
-        ChacheManager.Load();
+        CacheManager.Load();
         WebConstants.Load();
         CustomCosmetics.CustomColors.Load();
         ModDownloader.Load();
@@ -117,7 +119,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
         try
         {
             DirectoryInfo d = new(Path.GetDirectoryName(Application.dataPath) + @"\BepInEx\plugins");
-            string[] files = d.GetFiles("*.dll.old").Select(x => x.FullName).ToArray(); // Getting old versions
+            var files = d.GetFiles("*.dll.old").Select(x => x.FullName); // Getting old versions
             foreach (string f in files)
                 File.Delete(f);
         }
@@ -127,6 +129,8 @@ public partial class SuperNewRolesPlugin : BasePlugin
         }
 
         // Old Delete End
+
+        LoggerPlus.SetLogName();
 
         SuperNewRoles.Logger.Info(DateTime.Now.ToString("D"), "DateTime Now"); // 2022年11月24日
         SuperNewRoles.Logger.Info(ThisAssembly.Git.Branch, "Branch");
@@ -169,6 +173,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
         ClassInjector.RegisterTypeInIl2Cpp<SpiderTrap>();
         ClassInjector.RegisterTypeInIl2Cpp<WCSantaHandler>();
         ClassInjector.RegisterTypeInIl2Cpp<PushedPlayerDeadbody>();
+        ClassInjector.RegisterTypeInIl2Cpp<Lantern>();
         ClassInjector.RegisterTypeInIl2Cpp<WaveCannonEffect>();
         ClassInjector.RegisterTypeInIl2Cpp<ModSettingsMenu>();
         ClassInjector.RegisterTypeInIl2Cpp<ModOptionBehaviour>();
@@ -176,6 +181,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
         ClassInjector.RegisterTypeInIl2Cpp<ModRoleOptionSetting>();
         ClassInjector.RegisterTypeInIl2Cpp<ModStringOption>();
         ClassInjector.RegisterTypeInIl2Cpp<ModToggleOption>();
+        ClassInjector.RegisterTypeInIl2Cpp<Drone>();
 
         Logger.LogInfo("Start Load Resource");
         string[] resourceNames = assembly.GetManifestResourceNames();

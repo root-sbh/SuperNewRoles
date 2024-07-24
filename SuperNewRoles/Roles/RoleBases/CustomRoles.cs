@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using HarmonyLib;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Roles.Role;
 using SuperNewRoles.Roles.RoleBases.Interfaces;
 using UnityEngine;
@@ -33,8 +34,9 @@ public static class CustomRoles
                 }
                 break;
             case ModeId.SuperHostRoles:
-                foreach (IFixedUpdaterAll all in IFixedUpdaterAlls)
-                    all.FixedUpdateAllSHR();
+                if (IFixedUpdaterAlls != null)
+                    foreach (IFixedUpdaterAll all in IFixedUpdaterAlls)
+                        all.FixedUpdateAllSHR();
                 if (ifum != null)
                 {
                     ifum.FixedUpdateMeSHR();
@@ -70,6 +72,7 @@ public static class CustomRoles
     }
     public static void NameHandler(bool CanSeeAllRole = false)
     {
+        RoleBaseManager.GetInterfaces<INameHandler>().Do(x => x.OnHandleAllPlayer());
         if (CanSeeAllRole)
         {
             RoleBaseManager.GetInterfaces<INameHandler>()
@@ -125,7 +128,20 @@ public static class CustomRoles
                             handleDisconnect.OnDisconnect();
                     }
                );
+                if (player.TryGetRoleBase(out RoleBase roleBase))
+                    RoleBaseManager.ClearRole(player, roleBase);
+                AntiBlackOut.OnDisconnect(player.Data);
             }
+        }
+    }
+
+    [HarmonyPatch(typeof(PlayerPhysics), nameof(PlayerPhysics.FixedUpdate))]
+    public static class PlayerPhysicsSpeedPatch
+    {
+        public static void Postfix(PlayerPhysics __instance)
+        {
+            RoleBase roleBase = __instance.myPlayer.GetRoleBase();
+            if (roleBase is IPlayerPhysics physics) physics.FixedUpdate(__instance);
         }
     }
 
@@ -141,6 +157,18 @@ public static class CustomRoles
         DeathInfo info = new(deadPlayer);
         RoleBaseManager.GetInterfaces<IDeathHandler>().Do(x => x.OnMurderPlayer(info));
         OnDeath(info);
+    }
+    public static bool OnCheckVanish(PlayerControl player)
+    {
+        return player.GetRoleBase() is ICheckPhantom checkPhantom
+            ? checkPhantom.CheckVanish()
+            : true;
+    }
+    public static bool OnCheckAppear(PlayerControl player, bool shouldAnimate)
+    {
+        return player.GetRoleBase() is ICheckPhantom checkPhantom
+            ? checkPhantom.CheckAppear(shouldAnimate)
+            : true;
     }
     public static bool OnCheckMurderPlayer(PlayerControl source, PlayerControl target)
     {
@@ -270,13 +298,12 @@ public static class CustomRoles
             return roleInfo.TeamType;
         return IntroData.GetIntrodata(role, player, IsImpostorReturn)?.TeamType ?? TeamType.Error;
     }
-    public static PlayerControl[] GetRolePlayers<T>() where T : RoleBase
+    public static List<PlayerControl> GetRolePlayers<T>() where T : RoleBase
     {
-        IReadOnlyList<T> Roles = RoleBaseManager.GetRoleBases<T>();
-        PlayerControl[] Players = new PlayerControl[Roles.Count];
-        for (int i = 0; i < Roles.Count; i++)
+        List<PlayerControl> Players = new();
+        foreach (T Role in RoleBaseManager.GetRoleBases<T>())
         {
-            Players[i] = Roles[i].Player;
+            Players.Add(Role.Player);
         }
         return Players;
     }

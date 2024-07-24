@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Epic.OnlineServices.Presence;
-using Epic.OnlineServices.UI;
 using SuperNewRoles.Roles.Role;
 using SuperNewRoles.Roles.RoleBases.Interfaces;
 
@@ -26,12 +22,23 @@ public static class RoleBaseManager
     {
         return fixedUpdaterAlls;
     }
-    public static IReadOnlyList<T> GetInterfaces<T>()
+    public static IEnumerable<T> GetInterfaces<T>()
     {
         if (!AllInterfaces.TryGetValue(typeof(T).Name, out HashSet<RoleBase> RoleBases) ||
             RoleBases == null)
-            return new List<T>();
-        return RoleBases.Cast<T>().ToList();
+            return Enumerable.Empty<T>();
+        return RoleBases.Cast<T>();
+    }
+    public static void DoInterfaces<T>(Action<T> action)
+    {
+        if (!AllInterfaces.TryGetValue(typeof(T).Name, out HashSet<RoleBase> RoleBases) ||
+            RoleBases == null)
+            return;
+        foreach (RoleBase roleBase in RoleBases)
+        {
+            if (roleBase is T t)
+                action(t);
+        }
     }
     public static RoleBase SetRole(PlayerControl player, RoleId role)
     {
@@ -124,10 +131,19 @@ public static class RoleBaseManager
         result = PlayerRoles[player];
         return result != null;
     }
-    public static IReadOnlyList<T> GetRoleBases<T>() where T : RoleBase
+    public static IEnumerable<T> GetRoleBases<T>() where T : RoleBase
     {
-        return RoleBaseTypes.TryGetValue(typeof(T).Name, out HashSet<RoleBase> value) ? value.Cast<T>().ToList() : new();
+        return RoleBaseTypes.TryGetValue(typeof(T).Name, out HashSet<RoleBase> value) ? value.Cast<T>() : Enumerable.Empty<T>();
     }
+    public static IReadOnlySet<RoleBase> GetRoleBaseOrigins<T>() where T : RoleBase
+    {
+        if (RoleBaseTypes.TryGetValue(typeof(T).Name, out HashSet<RoleBase> value))
+            return value;
+        if (RoleBaseEmpty.Count != 0)
+            RoleBaseEmpty = new();
+        return RoleBaseEmpty;
+    }
+    private static HashSet<RoleBase> RoleBaseEmpty = new();
     public static T GetRoleBase<T>(this PlayerControl player) where T : RoleBase
     {
         return PlayerRoles[player] as T;

@@ -15,6 +15,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using static System.String;
 using static SuperNewRoles.Patches.AddChatPatch;
+using static UnityEngine.GraphicsBuffer;
 
 namespace SuperNewRoles.Patches;
 
@@ -374,7 +375,7 @@ internal static class GetChatCommands
         StringBuilder settingBuilder = new();
         const string line = "\n<color=#4d4398><size=80%>|-----------------------------------------------------------------------------|</size></color>\n";
 
-        foreach (CustomOption option in CustomOption.options)
+        foreach (CustomOption option in CustomOption.options.AsSpan())
         {
             if (!(option.type == CustomOptionType.Generic || option.type == CustomOptionType.Modifier)) continue;
             if ((option == CustomOptionHolder.presetSelection) ||
@@ -429,7 +430,7 @@ internal static class GetChatCommands
         {
             if (!option.Enabled || (modeId == ModeId.SuperHostRoles && !option.isSHROn)) return;
 
-            foreach (var child in option.children)
+            foreach (var child in option.children.AsSpan())
             {
                 if (modeId == ModeId.SuperHostRoles && !child.isSHROn) continue;
 
@@ -446,7 +447,7 @@ internal static class GetChatCommands
     internal static string GetWinnerMessage()
     {
         StringBuilder builder = new();
-        foreach (var data in OnGameEndPatch.PlayerData)
+        foreach (var data in OnGameEndPatch.PlayerData.AsSpan())
         {
             if (data.IsWin) builder.Append("★");
             else builder.Append("　");
@@ -480,7 +481,7 @@ internal static class GetChatCommands
 
         ModeId modeId = ModeHandler.GetMode(false);
 
-        foreach (CustomOption option in CustomOption.options)
+        foreach (CustomOption option in CustomOption.options.AsSpan())
         {
             if (option.GetSelection() == 0) continue;
             if (option.type != CustomOptionType.MatchTag) continue;
@@ -573,7 +574,7 @@ internal static class RoleinformationText
             EnableOptions.Add(option);
         }
         float time = 0;
-        foreach (CustomRoleOption option in EnableOptions)
+        foreach (CustomRoleOption option in EnableOptions.AsSpan())
         {
             (string rolename, string text) = RoleInfo.GetRoleInfo(option.RoleId, isGetAllRole: isCommanderHost);
             rolename = $"<align={"left"}><size=115%>\n" + CustomRoles.GetRoleNameOnColor(option.RoleId) + "</size></align>";
@@ -632,7 +633,7 @@ internal static class RoleinformationText
         if (!AmongUsClient.Instance.AmHost) return;
 
         PlayerControl target = sourcePlayer.AmOwner ? null : sourcePlayer;
-
+        /*
         (string[] roleNameKey, bool isSuccess) = ModTranslation.GetTranslateKey(command);
 
         string beforeIdChangeRoleName =
@@ -651,13 +652,36 @@ internal static class RoleinformationText
             if (roleName == "NONE") roleInfo = Format(roleInfo, command); // RoleIdからの役職情報の取得に失敗していた場合, 入力した役職名を追加する。
             SendCommand(target, roleInfo, roleName);
             return;
+        }*/
+        string roleName = "NONE";
+        RoleId? roleId = GetRoleIdByName(command);
+        if (roleId.HasValue)
+        {
+            (roleName, string roleInfo) = RoleInfo.GetRoleInfo(roleId.Value, AmongUsClient.Instance.AmHost);
+            if (roleName == "NONE") roleInfo = Format(roleInfo, command); // RoleIdからの役職情報の取得に失敗していた場合, 入力した役職名を追加する。
+            SendCommand(target, roleInfo, roleName);
+            return;
         }
 
         SendCommand(target, Format(ModTranslation.GetString("RoleInfoError"), command));
     }
+    public static RoleId? GetRoleIdByName(string Name)
+    {
+        (string[] roleNameKey, bool isSuccess) = ModTranslation.GetTranslateKey(Name);
+
+        string beforeIdChangeRoleName =
+            isSuccess
+                ? roleNameKey.FirstOrDefault(key => key.Contains("Name")).Replace("Name", "") ?? Name // 翻訳キーの取得に成功した場合, 配列から"Name"を含む要素を取得し そのから要素"Name"を外して, RoleIdに一致する役職名を取得する.
+                : Name; // 翻訳辞書からの取得に失敗した場合, 入力された文字のまま (失敗処理は, RoleIdで入力された場合も含む)
+
+        // 参考 => https://qiita.com/masaru/items/a44dc30bfc18aac95015#fnref1
+        // 取得した役職名(string)からRoleIdを取得する。
+        var roleIdChange = Enum.TryParse(beforeIdChangeRoleName, out RoleId roleId) && Enum.IsDefined(typeof(RoleId), roleId);
+        return roleIdChange ? roleId : null;
+    }
     internal static void YourRoleInfoSendCommand()
     {
-        foreach (PlayerControl player in CachedPlayer.AllPlayers)
+        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
         {
             if (player == null || player.IsBot()) continue;
             RoleId roleId = player.GetRole();
@@ -702,7 +726,7 @@ internal static class RoleinformationText
             }
 
             // 現在有効な役職の説明を保存
-            foreach (CustomRoleOption roleOption in EnableOptions)
+            foreach (CustomRoleOption roleOption in EnableOptions.AsSpan())
             {
                 RoleId roleId = roleOption.RoleId;
                 string roleName, info;

@@ -47,7 +47,7 @@ public class FixedUpdate
 {
     static void SetBasePlayerOutlines()
     {
-        foreach (PlayerControl target in CachedPlayer.AllPlayers)
+        foreach (PlayerControl target in CachedPlayer.AllPlayers.AsSpan())
         {
             var rend = target.MyRend();
             if (target == null || rend == null) continue;
@@ -55,15 +55,14 @@ public class FixedUpdate
             rend.material.SetFloat("_Outline", 0f);
         }
     }
-
     static void SetBaseVentMaterial()
     {
         if (PlayerControl.LocalPlayer.IsUseVent()) return;
         if (!ShipStatus.Instance) return;
-        List<NormalPlayerTask> tasks = PlayerControl.LocalPlayer.myTasks.ToList().FindAll(x => !x.IsComplete && x.TaskType is TaskTypes.VentCleaning).ConvertAll(x => x.Cast<NormalPlayerTask>());
+        var tasks = PlayerControl.LocalPlayer.myTasks.ToList().FindAll(x => !x.IsComplete && x.TaskType is TaskTypes.VentCleaning).ConvertAll(x => x.Cast<NormalPlayerTask>().Data[0]);
         foreach (Vent vent in ShipStatus.Instance.AllVents)
         {
-            if (tasks.Exists(x => x.Data[0] == vent.Id)) continue;
+            if (tasks.Exists(x => x == vent.Id)) continue;
             vent.SetOutline(false, false);
         }
     }
@@ -209,9 +208,6 @@ public class FixedUpdate
                             break;
                         case RoleId.Doppelganger:
                             Doppelganger.FixedUpdate();
-                            break;
-                        case RoleId.Pavlovsowner:
-                            Pavlovsdogs.OwnerFixedUpdate();
                             break;
                         case RoleId.WaveCannonJackal:
                             JackalSeer.JackalSeerFixedPatch.JackalSeerPlayerOutLineTarget();

@@ -5,6 +5,7 @@ using AmongUs.GameOptions;
 using HarmonyLib;
 using SuperNewRoles.CustomObject;
 using SuperNewRoles.MapCustoms;
+using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Patches;
 using SuperNewRoles.Replay;
 using SuperNewRoles.Roles.Attribute;
@@ -33,7 +34,7 @@ public static class RoleClass
     public static Color ImpostorRed = Palette.ImpostorRed;
     public static Color CrewmateWhite = Color.white;
     public static Color FoxPurple = Palette.Purple;
-    private static Color32 SheriffYellow = new(250, 191, 20, byte.MaxValue);
+    public static Color32 SheriffYellow = new(250, 191, 20, byte.MaxValue);
     public static Color32 JackalBlue = new(0, 180, 235, byte.MaxValue);
     public static bool IsStart;
     public static List<byte> BlockPlayers;
@@ -42,6 +43,7 @@ public static class RoleClass
     public static void ClearAndReloadRoles()
     {
         ModHelpers.IdControlDic = new();
+        ModHelpers.ColorControlDic = new();
         ModHelpers.VentIdControlDic = new();
         ReplayManager.ClearAndReloads();
         BlockPlayers = new();
@@ -57,6 +59,7 @@ public static class RoleClass
         LateTask.AddTasks = new();
         BotManager.AllBots = new();
         CustomOverlays.ResetOverlays();
+        EndGameManagerSetUpPatch.IsHaison = false;
         IsCoolTimeSetted = false;
         DefaultKillCoolDown = GameOptionsManager.Instance.CurrentGameOptions.GetFloat(FloatOptionNames.KillCooldown);
         IsStart = false;
@@ -74,6 +77,7 @@ public static class RoleClass
         Mode.BattleRoyal.Main.VentData = new();
         FinalStatusPatch.FinalStatusData.ClearFinalStatusData();
         Mode.ModeHandler.ClearAndReload();
+        AntiBlackOut.ClearAndReload();
         MapCustomClearAndReload.ClearAndReload();
         AdditionalVents.ClearAndReload();
         SpecimenVital.ClearAndReload();
@@ -84,6 +88,9 @@ public static class RoleClass
         ReleaseGhostAbility.ClearAndReload();
         FixSabotage.ClearAndReload();
         Patches.CursedTasks.Main.ClearAndReload();
+        Drone.ClearAndReload();
+
+        DeadBodyManager.ClearAndReloads();
 
         /* 陣営playerがうまく動かず使われてない為コメントアウト。
         RoleHelpers.CrewmatePlayer = new();
@@ -162,7 +169,7 @@ public static class RoleClass
         Fox.ClearAndReload();
         DarkKiller.ClearAndReload();
         Seer.ClearAndReload();
-        Crewmate.SeerHandler.ShowFlash_ClearAndReload();
+        SeerHandler.ShowFlash_ClearAndReload();
         MadSeer.ClearAndReload();
         EvilSeer.CreateMode = -1;
         RemoteSheriff.ClearAndReload();
@@ -175,7 +182,6 @@ public static class RoleClass
         Assassin.ClearAndReload();
         Marlin.ClearAndReload();
         Arsonist.ClearAndReload();
-        Chief.ClearAndReload();
         Cleaner.ClearAndReload();
         MadCleaner.ClearAndReload();
         Samurai.ClearAndReload();
@@ -221,8 +227,6 @@ public static class RoleClass
         Doppelganger.ClearAndReload();
         Werewolf.ClearAndReload();
         Knight.ClearAndReload();
-        Pavlovsdogs.ClearAndReload();
-        Pavlovsowner.ClearAndReload();
         //SidekickWaveCannon.Clear();
         Beacon.AllBeacons = new();
         Camouflager.ClearAndReload();
@@ -246,7 +250,6 @@ public static class RoleClass
         BlackHatHacker.ClearAndReload();
         PoliceSurgeon.RoleData.ClearAndReload();
         MadRaccoon.RoleData.ClearAndReload();
-        Moira.ClearAndReload();
         JumpDancer.ClearAndReload();
         Sauner.RoleData.ClearAndReload();
         Bat.RoleData.ClearAndReload();
@@ -261,7 +264,7 @@ public static class RoleClass
         Quarreled.ClearAndReload();
         Lovers.ClearAndReload();
         MapOption.MapOption.ClearAndReload();
-        ChacheManager.Load();
+        CacheManager.Load();
         DebugModeManager.ClearAndReloads();
     }
 
@@ -540,7 +543,7 @@ public static class RoleClass
             CoolTime = CustomOptionHolder.ShielderCoolTime.GetFloat();
             DurationTime = CustomOptionHolder.ShielderDurationTime.GetFloat();
             IsShield = new Dictionary<byte, bool>();
-            foreach (PlayerControl p in CachedPlayer.AllPlayers) RoleClass.Shielder.IsShield[p.PlayerId] = false;
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan()) RoleClass.Shielder.IsShield[p.PlayerId] = false;
         }
     }
     public static class Freezer
@@ -1795,7 +1798,7 @@ public static class RoleClass
             IsDouse = false;
             DouseTarget = null;
         }
-    }
+    }/*
     public static class Chief
     {
         public static List<PlayerControl> ChiefPlayer;
@@ -1816,7 +1819,7 @@ public static class RoleClass
             CoolTime = CustomOptionHolder.ChiefSheriffCoolTime.GetFloat();
             KillLimit = CustomOptionHolder.ChiefSheriffKillLimit.GetInt();
         }
-    }
+    }*/
     public static class Cleaner
     {
         public static List<PlayerControl> CleanerPlayer;
@@ -1974,7 +1977,7 @@ public static class RoleClass
         {
             TunaPlayer = new();
             Position = new();
-            foreach (PlayerControl p in CachedPlayer.AllPlayers) Position[p.PlayerId] = new Vector3(9999f, 9999f, 9999f);
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan()) Position[p.PlayerId] = new Vector3(9999f, 9999f, 9999f);
             StoppingTime = CustomOptionHolder.TunaStoppingTime.GetFloat();
             if (Mode.ModeHandler.IsMode(Mode.ModeId.Default)) Timer = StoppingTime;
             IsUseVent = CustomOptionHolder.TunaIsUseVent.GetBool();
@@ -1982,7 +1985,7 @@ public static class RoleClass
             if (Mode.ModeHandler.IsMode(Mode.ModeId.SuperHostRoles))
             {
                 Timers = new();
-                foreach (PlayerControl p in CachedPlayer.AllPlayers) Timers[p.PlayerId] = StoppingTime;
+                foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan()) Timers[p.PlayerId] = StoppingTime;
             }
         }
     }
@@ -2106,7 +2109,7 @@ public static class RoleClass
             if (SendKunai != null) { GameObject.Destroy(SendKunai.kunai); }
             if (Kunais.Count > 0)
             {
-                foreach (Kunai kunai in Kunais)
+                foreach (Kunai kunai in Kunais.AsSpan())
                 {
                     if (kunai != null)
                     {
@@ -2259,7 +2262,7 @@ public static class RoleClass
                 if (_revolutionedPlayer.Length != RevolutionedPlayerId.Count)
                 {
                     List<PlayerControl> newList = new();
-                    foreach (byte playerid in RevolutionedPlayerId)
+                    foreach (byte playerid in RevolutionedPlayerId.AsSpan())
                     {
                         PlayerControl player = ModHelpers.PlayerById(playerid);
                         if (player == null) continue;
@@ -2511,7 +2514,7 @@ public static class RoleClass
                 if (PhotedPlayerIds.Count != _photedPlayer.Count)
                 {
                     List<PlayerControl> NewList = new();
-                    foreach (byte playerid in PhotedPlayerIds)
+                    foreach (byte playerid in PhotedPlayerIds.AsSpan())
                     {
                         PlayerControl player = ModHelpers.PlayerById(playerid);
                         if (player) NewList.Add(player);
@@ -2574,7 +2577,7 @@ public static class RoleClass
                 if (currentCrackedPlayerControls.Count != currentCrackedPlayers.Count)
                 {
                     List<PlayerControl> newList = new();
-                    foreach (byte p in currentCrackedPlayers) newList.Add(ModHelpers.PlayerById(p));
+                    foreach (byte p in currentCrackedPlayers.AsSpan()) newList.Add(ModHelpers.PlayerById(p));
                     currentCrackedPlayerControls = newList;
                 }
                 return currentCrackedPlayerControls;
@@ -2624,45 +2627,6 @@ public static class RoleClass
         public static void ClearAndReload()
         {
             gm = null;
-        }
-    }
-    public static class Pavlovsdogs
-    {
-        public static List<PlayerControl> PavlovsdogsPlayer;
-        public static Color32 color = new(244, 169, 106, byte.MaxValue);
-        public static bool IsOwnerDead
-        {
-            get
-            {
-                return Pavlovsowner.PavlovsownerPlayer.All(x => x.IsDead());
-            }
-        }
-        public static float DeathTime;
-        public static void ClearAndReload()
-        {
-            PavlovsdogsPlayer = new();
-            DeathTime = CustomOptionHolder.PavlovsdogRunAwayDeathTime.GetFloat();
-        }
-    }
-    public static class Pavlovsowner
-    {
-        public static List<PlayerControl> PavlovsownerPlayer;
-        public static Color32 color = Pavlovsdogs.color;
-        public static bool CanCreateDog => (CurrentChildPlayer == null || CurrentChildPlayer.IsDead()) && CreateLimit > 0;
-        public static PlayerControl CurrentChildPlayer;
-        public static Arrow DogArrow;
-        public static int CreateLimit;
-        public static Dictionary<byte, int> CountData;
-        public static Sprite GetButtonSprite() => ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.PavlovsownerCreatedogButton.png", 115f);
-        public static void ClearAndReload()
-        {
-            PavlovsownerPlayer = new();
-            CurrentChildPlayer = null;
-            if (DogArrow != null) GameObject.Destroy(DogArrow.arrow);
-            DogArrow = new(color);
-            DogArrow.arrow.SetActive(false);
-            CreateLimit = CustomOptionHolder.PavlovsownerCreateDogLimit.GetInt();
-            CountData = new();
         }
     }
     public static class Camouflager
@@ -2741,7 +2705,7 @@ public static class RoleClass
             PenguinPlayer = new();
             PenguinData = new(needplayerlist: true);
             PenguinTimer = new();
-            bool Is = ModHelpers.IsSucsessChance(4);
+            bool Is = ModHelpers.IsSuccessChance(4);
             _buttonSprite = ModHelpers.LoadSpriteFromResources($"SuperNewRoles.Resources.PenguinButton_{(Is ? 1 : 2)}.png", Is ? 87.5f : 110f);
         }
     }

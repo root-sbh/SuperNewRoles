@@ -40,7 +40,7 @@ public static class Rocket
             {
                 continue;
             }
-            foreach (PlayerControl player in data.Value)
+            foreach (PlayerControl player in data.Value.AsSpan())
             {
                 if (player == null || player.IsDead())
                     continue;
@@ -67,7 +67,7 @@ public static class Rocket
                 return;
             }
             int index = -1;
-            foreach (PlayerControl player in data.Value)
+            foreach (PlayerControl player in data.Value.AsSpan())
             {
                 index++;
                 if (player == null || player.IsDead())
@@ -162,7 +162,7 @@ public static class Rocket
                 () => { return false; }
             )
             {
-                buttonText = ModHelpers.IsSucsessChance(5) ? ModTranslation.GetString("RocketLetsButtonName") : ModTranslation.GetString("RocketLetsButtonName2"),
+                buttonText = ModHelpers.IsSuccessChance(5) ? ModTranslation.GetString("RocketLetsButtonName") : ModTranslation.GetString("RocketLetsButtonName2"),
                 showButtonText = true
             };
         }

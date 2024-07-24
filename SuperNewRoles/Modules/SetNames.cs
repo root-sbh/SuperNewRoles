@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using Sentry.Unity.NativeUtils;
 using SuperNewRoles.Mode;
+using SuperNewRoles.Mode.PlusMode;
+using SuperNewRoles.Mode.SuperHostRoles;
 using SuperNewRoles.Patches;
 using SuperNewRoles.Roles;
 using SuperNewRoles.Roles.Attribute;
@@ -173,9 +175,8 @@ public class SetNamesClass
         }
         else if (p.IsPavlovsTeam())
         {
-            var introData = IntroData.PavlovsdogsIntro;
-            roleNames = $"{introData.Name}{(role == RoleId.Pavlovsdogs ? "(D)" : "(O)")}";
-            roleColors = RoleClass.Pavlovsdogs.color;
+            roleNames = $"{ModTranslation.GetString($"{PavlovsDogs.Roleinfo.NameKey}Name")}{(role == RoleId.Pavlovsdogs ? "(D)" : "(O)")}";
+            roleColors = PavlovsDogs.PavlovsColor;
         }
         else
         {

@@ -26,6 +26,7 @@ using SuperNewRoles.Roles.RoleBases.Interfaces;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Audio;
+using static UnityEngine.GraphicsBuffer;
 
 namespace SuperNewRoles;
 
@@ -61,7 +62,7 @@ public static class ModHelpers
     public static int GetAlivePlayerCount()
     {
         int count = 0;
-        foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+        foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             if (p.IsAlive()) count++;
         return count;
     }
@@ -212,7 +213,7 @@ public static class ModHelpers
         get
         {
             List<PlayerControl> ps = new();
-            foreach (CachedPlayer p in CachedPlayer.AllPlayers)
+            foreach (CachedPlayer p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!p.Data.Disconnected) ps.Add(p.PlayerControl);
             }
@@ -260,7 +261,7 @@ public static class ModHelpers
     public static Dictionary<byte, PlayerControl> AllPlayersById()
     {
         Dictionary<byte, PlayerControl> res = new();
-        foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
             res.Add(player.PlayerId, player);
         return res;
     }
@@ -276,7 +277,7 @@ public static class ModHelpers
     public static void DestroyList<T>(List<T> items) where T : UnityEngine.Object
     {
         if (items == null) return;
-        foreach (T item in items)
+        foreach (T item in items.AsSpan())
         {
             UnityEngine.Object.Destroy(item);
         }
@@ -451,7 +452,7 @@ public static class ModHelpers
     }
     public static void AllRun<T>(this List<T> list, Action<T> act)
     {
-        foreach (T obj in list)
+        foreach (T obj in list.AsSpan())
             act(obj);
     }
     public static void AllRun<T>(this T[] array, Action<T> act)
@@ -516,6 +517,13 @@ public static class ModHelpers
         foreach (SpriteRenderer r in player.gameObject.GetComponentsInChildren<SpriteRenderer>())
             r.color = new Color(r.color.r, r.color.g, r.color.b, alpha);
         player.cosmetics.nameText.color = new Color(player.cosmetics.nameText.color.r, player.cosmetics.nameText.color.g, player.cosmetics.nameText.color.b, alpha);
+    }
+    public static void HideChildren(Transform transform)
+    {
+        if (transform == null)
+            return;
+        for (int i = 0; i < transform.childCount; i++)
+            transform.GetChild(i).gameObject.SetActive(false);
     }
 
     public static Console ActivateConsole(Transform trf) => ActivateConsole(trf.gameObject);
@@ -654,7 +662,9 @@ public static class ModHelpers
     }
     public static InnerNet.ClientData GetClient(this PlayerControl player)
     {
-        var client = AmongUsClient.Instance.allClients.FirstOrDefault(cd => cd.Character.PlayerId == player.PlayerId);
+        if (AmongUsClient.Instance?.allClients == null)
+            return null;
+        var client = AmongUsClient.Instance.allClients.FirstOrDefault(cd => cd.Character != null && cd.Character.PlayerId == player.PlayerId);
         return client;
     }
     public static T FirstOrDefault<T>(this Il2CppSystem.Collections.Generic.List<T> list, Func<T, bool> func)
@@ -672,7 +682,7 @@ public static class ModHelpers
     }
     public static T FirstOrDefault<T>(this List<T> list, Func<T, bool> func)
     {
-        foreach (T obj in list)
+        foreach (T obj in list.AsSpan())
             if (func(obj))
                 return obj;
         return default;
@@ -732,7 +742,7 @@ public static class ModHelpers
     {
         if (list == null)
             return false;
-        foreach (T obj in list)
+        foreach (T obj in list.AsSpan())
             if (func(obj))
                 return true;
         return false;
@@ -752,17 +762,22 @@ public static class ModHelpers
     }
     public static List<T> ToList<T>(this Il2CppSystem.Collections.Generic.List<T> list)
     {
-        List<T> newList = new(list.Count);
-        foreach (T item in list)
+        List<T> newList = [.. list];
+        return newList;
+    }
+    public static Il2CppSystem.Collections.Generic.List<T> ToIl2CppList<T>(this List<T> list)
+    {
+        Il2CppSystem.Collections.Generic.List<T> newList = new(list.Count);
+        foreach (T item in list.AsSpan())
         {
             newList.Add(item);
         }
         return newList;
     }
-    public static Il2CppSystem.Collections.Generic.List<T> ToIl2CppList<T>(this IEnumerable<T> list)
+    public static Il2CppSystem.Collections.Generic.List<T> ToIl2CppList<T>(this T[] array)
     {
-        Il2CppSystem.Collections.Generic.List<T> newList = new(list.Count());
-        foreach (T item in list)
+        Il2CppSystem.Collections.Generic.List<T> newList = new(array.Length);
+        foreach (T item in array)
         {
             newList.Add(item);
         }
@@ -815,13 +830,13 @@ public static class ModHelpers
         var client = player.GetClient();
         return client == null ? -1 : client.Id;
     }
-    public static bool IsSucsessChance(int SucsessChance, int MaxChance = 10)
+    public static bool IsSuccessChance(int SuccessChance, int MaxChance = 10)
     {
         //成功確率が0%ならfalseを返す
-        if (SucsessChance == 0) return false;
+        if (SuccessChance == 0) return false;
         //成功確率が最大と一緒かそれ以上ならtrueを返す
-        if (SucsessChance >= MaxChance) return true;
-        return UnityEngine.Random.Range(0, MaxChance) <= SucsessChance;
+        if (SuccessChance >= MaxChance) return true;
+        return UnityEngine.Random.Range(0, MaxChance) <= SuccessChance;
     }
     /// <summary>
     /// ランダムを取得します。max = 10だと0～10まで取得できます
@@ -945,7 +960,12 @@ public static class ModHelpers
 
     public static string Cs(Color c, string s)
     {
-        return string.Format("<color=#{0:X2}{1:X2}{2:X2}{3:X2}>{4}</color>", CustomOptionHolder.ToByte(c.r), CustomOptionHolder.ToByte(c.g), CustomOptionHolder.ToByte(c.b), CustomOptionHolder.ToByte(c.a), s);
+        return $"<color=#{ToByte(c.r):X2}{ToByte(c.g):X2}{ToByte(c.b):X2}{ToByte(c.a):X2}>{s}</color>";
+    }
+    public static byte ToByte(float f)
+    {
+        f = Mathf.Clamp01(f);
+        return (byte)(f * 255);
     }
     public static T GetRandom<T>(this Il2CppSystem.Collections.Generic.List<T> list)
     {
@@ -1053,13 +1073,14 @@ public static class ModHelpers
         return component != null ? component : obj.AddComponent<T>();
     }
     internal static Dictionary<byte, PlayerControl> IdControlDic = new(); // ClearAndReloadで初期化されます
+    internal static Dictionary<string, PlayerControl> ColorControlDic = new(); // ClearAndReloadで初期化されます
     internal static Dictionary<int, Vent> VentIdControlDic = new(); // ClearAndReloadで初期化されます
     public static PlayerControl GetPlayerControl(this byte id) => PlayerById(id);
     public static PlayerControl PlayerById(byte id)
     {
         if (!IdControlDic.ContainsKey(id))
         { // idが辞書にない場合全プレイヤー分のループを回し、辞書に追加する
-            foreach (PlayerControl pc in CachedPlayer.AllPlayers)
+            foreach (PlayerControl pc in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!IdControlDic.ContainsKey(pc.PlayerId)) // Key重複対策
                     IdControlDic.Add(pc.PlayerId, pc);
@@ -1067,6 +1088,21 @@ public static class ModHelpers
         }
         if (IdControlDic.ContainsKey(id)) return IdControlDic[id];
         Logger.Error($"idと合致するPlayerIdが見つかりませんでした。nullを返却します。id:{id}", "ModHelpers");
+        return null;
+    }
+    public static PlayerControl GetPlayerControl(this string id) => PlayerByColor(id);
+    public static PlayerControl PlayerByColor(string color_name)
+    {
+        if (ColorControlDic.TryGetValue(color_name, out PlayerControl player)) return player;
+        foreach (PlayerControl check in CachedPlayer.AllPlayers.AsSpan())
+        {
+            if (color_name == check.Data.GetPlayerColorString())
+            {
+                ColorControlDic[color_name] = check;
+                return check;
+            }
+        }
+        Logger.Error($"カラーと合致するPlayerが見つかりませんでした。nullを返却します。color:{color_name}", "ModHelpers");
         return null;
     }
     public static Vent VentById(byte id)
@@ -1084,9 +1120,20 @@ public static class ModHelpers
         return null;
     }
 
+    private static Dictionary<ushort, bool> IsImpostorRoleCached = new();
+    public static bool IsImpostorRole(this RoleTypes roleTypes)
+    {
+        if (IsImpostorRoleCached.TryGetValue((ushort)roleTypes, out bool value))
+            return value;
+        RoleBehaviour role = FastDestroyableSingleton<RoleManager>.Instance.GetRole(roleTypes);
+        if (role == null)
+            throw new NotImplementedException($"Not found roletypes: {roleTypes}");
+        return IsImpostorRoleCached[(ushort)roleTypes] = role.IsImpostor;
+    }
+
     public static bool IsCheckListPlayerControl(this List<PlayerControl> listData, PlayerControl CheckPlayer)
     {
-        foreach (PlayerControl Player in listData)
+        foreach (PlayerControl Player in listData.AsSpan())
         {
             if (Player is null) continue;
             if (Player.PlayerId == CheckPlayer.PlayerId)
@@ -1187,7 +1234,7 @@ public static class ModHelpers
     {
         if (str == null) return 0;
         int n = 0;
-        foreach (var c in str)
+        foreach (var c in str.AsSpan())
         {
             if (c == '\n') n++;
         }
@@ -1198,8 +1245,13 @@ public static class ModHelpers
         tmp.fontSize = tmp.fontSizeMax = tmp.fontSizeMin = size;
     }
     public static void AddListener(this UnityEngine.Events.UnityEvent @event, Action action) => @event.AddListener(action);
-    public static T Find<T>(this Il2CppSystem.Collections.Generic.List<T> data, Predicate<T> match) => data.ToList().Find(match);
-    public static Span<T> AsSpan<T>(this List<T> list) => CollectionsMarshal.AsSpan(list);
+    public static T Find<T>(this Il2CppSystem.Collections.Generic.List<T> data, Func<T, bool> match) => data.Find(match);
+    public static bool Any<T>(this Il2CppSystem.Collections.Generic.List<T> data, Func<T, bool> match) => data.FindIndex(match) >= 0;
+    public static ReadOnlySpan<T> AsSpan<T>(this List<T> list) => CollectionsMarshal.AsSpan(list);
+    public static void SetActiveEx(this GameObject obj, bool value)
+    {
+        if (obj.active != value) obj.SetActive(value);
+    }
 }
 public static class CreateFlag
 {

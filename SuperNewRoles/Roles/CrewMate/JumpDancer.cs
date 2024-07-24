@@ -53,7 +53,7 @@ public static class JumpDancer
     {
         if (JumpingPlayerIds.Count <= 0)
             return;
-        foreach (var data in JumpingPlayerIds.ToArray())
+        foreach (var data in JumpingPlayerIds)
         {
             PlayerControl player = ModHelpers.PlayerById(data.Key);
             if (data.Value > 0.9f || player.inMovingPlat || player.onLadder)
@@ -93,13 +93,13 @@ public static class JumpDancer
     }
     public static void SetJump(PlayerControl source, List<PlayerControl> players)
     {
-        foreach (PlayerControl player in players)
+        foreach (PlayerControl player in players.AsSpan())
         {
             if (JumpingPlayerIds.ContainsKey(player.PlayerId) || player.inMovingPlat || player.onLadder)
                 continue;
             if (player.PlayerId == PlayerControl.LocalPlayer.PlayerId)
             {
-                SoundManager.Instance.PlaySound(ModHelpers.loadAudioClipFromResources("SuperNewRoles.Resources.JumpDancerSe" + (ModHelpers.IsSucsessChance(5) ? "1" : "2") + ".raw"), false, audioMixer: SoundManager.Instance.SfxChannel);
+                SoundManager.Instance.PlaySound(ModHelpers.loadAudioClipFromResources("SuperNewRoles.Resources.JumpDancerSe" + (ModHelpers.IsSuccessChance(5) ? "1" : "2") + ".raw"), false, audioMixer: SoundManager.Instance.SfxChannel);
             }
             JumpingPlayerIds.Add(player.PlayerId, 0f);
             player.moveable = false;
@@ -112,7 +112,7 @@ public static class JumpDancer
         MessageWriter writer = RPCHelper.StartRPC(CustomRPC.JumpDancerJump);
         writer.Write(source.PlayerId);
         writer.Write(players.Count);
-        foreach (PlayerControl player in players)
+        foreach (PlayerControl player in players.AsSpan())
         {
             writer.Write(player.PlayerId);
         }
@@ -135,7 +135,7 @@ public static class JumpDancer
                 List<PlayerControl> players = new();
                 Vector2 localpos = PlayerControl.LocalPlayer.GetTruePosition();
                 float LightRadius = ShipStatus.Instance.CalculateLightRadius(PlayerControl.LocalPlayer.Data);
-                foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
                 {
                     if (CheckCan(player)) continue;
                     if (PlayerControl.LocalPlayer.PlayerId == player.PlayerId)

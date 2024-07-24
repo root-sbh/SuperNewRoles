@@ -52,14 +52,14 @@ public static class Assassin
                 Main.RealExiled = target.Object;
                 if (ModeHandler.IsMode(ModeId.SuperHostRoles))
                 {
-                    foreach (PlayerControl p in BotManager.AllBots)
+                    foreach (PlayerControl p in BotManager.AllBots.AsSpan())
                     {
                         if (p.IsDead())
                         {
                             exileplayer = p.Data;
                             exile = p;
                             p.RpcSetColor((byte)outfit.ColorId);
-                            p.RpcSetName(target.Object.GetDefaultName() + (target.Object.IsRole(RoleId.Marlin) ? ModTranslation.GetString("AssassinSucsess") : ModTranslation.GetString("AssassinFail")) + "<size=0%>");
+                            p.RpcSetName(target.Object.GetDefaultName() + (target.Object.IsRole(RoleId.Marlin) ? ModTranslation.GetString("AssassinSuccess") : ModTranslation.GetString("AssassinFail")) + "<size=0%>");
                             p.RpcSetHat(outfit.HatId);
                             p.RpcSetVisor(outfit.VisorId);
                             p.RpcSetSkin(outfit.SkinId);

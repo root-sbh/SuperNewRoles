@@ -15,6 +15,7 @@ using SuperNewRoles.Roles.Impostor.MadRole;
 using SuperNewRoles.Roles.Neutral;
 using SuperNewRoles.Roles.Role;
 using SuperNewRoles.Roles.RoleBases;
+using SuperNewRoles.Roles.RoleBases.Interfaces;
 using Object = UnityEngine.Object;
 
 namespace SuperNewRoles;
@@ -40,6 +41,7 @@ class Startgamepatch
 {
     public static void Postfix()
     {
+        RoleSelectHandler.SetTasksBuffer = null;
         RPCHelper.StartRPC(CustomRPC.StartGameRPC).EndRPC();
         RPCProcedure.StartGameRPC();
 
@@ -92,7 +94,7 @@ class RoleManagerSelectRolesPatch
             CustomRpcSender sender = CustomRpcSender.Create("SelectRoles Sender", SendOption.Reliable);
             List<PlayerControl> SelectPlayers = new();
             AllRoleSetClass.impostors = new();
-            foreach (PlayerControl player in CachedPlayer.AllPlayers)
+            foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!player.Data.Disconnected && !player.IsBot())
                 {
@@ -110,30 +112,108 @@ class RoleManagerSelectRolesPatch
                     SelectPlayers.RemoveAll(a => a.PlayerId == newimpostor.PlayerId);
                 }
             }
+
+
+            RoleTypes CrewRoleTypes = ModeHandler.IsMode(ModeId.VanillaHns) ? RoleTypes.Engineer : RoleTypes.Crewmate;
+            foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+            {
+                if (player.Data.Disconnected || player.IsImpostor())
+                    continue;
+                sender.RpcSetRole(player, CrewRoleTypes, true);
+            }
             sender = RoleSelectHandler.RoleSelect(sender);
 
-            foreach (PlayerControl player in AllRoleSetClass.impostors)
-            {
-                sender.RpcSetRole(player, RoleTypes.Impostor);
-            }
-            RoleTypes CrewRoleTypes = ModeHandler.IsMode(ModeId.VanillaHns) ? RoleTypes.Engineer : RoleTypes.Crewmate;
-            foreach (PlayerControl player in CachedPlayer.AllPlayers)
-            {
-                if (!player.Data.Disconnected && !player.IsImpostor())
-                {
-                    sender.RpcSetRole(player, CrewRoleTypes);
-                }
-            }
-
+            /*
             //サーバーの役職判定をだます
-            foreach (var pc in PlayerControl.AllPlayerControls)
+            foreach (var pc in CachedPlayer.AllPlayers.AsSpan())
             {
                 sender.AutoStartRpc(pc.NetId, (byte)RpcCalls.SetRole)
                     .Write((ushort)RoleTypes.Shapeshifter)
+                    .Write(true)
                     .EndRpc();
-            }
+            }*/
             //RpcSetRoleReplacerの送信処理
+
             sender.SendMessage();
+            /*
+                        RPCHelper.RpcSyncAllNetworkedPlayer(DEBUGOnlySender);
+                       */
+            foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+            {
+                player.Data.Disconnected = false;
+            }
+            RoleSelectHandler.SetTasksBuffer = new();
+            new LateTask(() =>
+            {
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    player.Data.Disconnected = true;
+                }
+                RPCHelper.RpcSyncAllNetworkedPlayer();
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    player.Data.Disconnected = false;
+                }
+            }, 0.25f);
+            new LateTask(() => {
+
+                PlayerControl RoleTargetPlayer = null;
+                RoleTypes RoleTargetRole = RoleTypes.Crewmate;
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    if (!player.IsCrew())
+                        continue;
+                    if (player.GetRoleBase() is ISupportSHR supportSHR && supportSHR.IsDesync && supportSHR.DesyncRole.IsImpostorRole())
+                        continue;
+                    var desyncData = RoleSelectHandler.GetDesyncRole(player.GetRole());
+                    if (desyncData.IsDesync && desyncData.RoleType.IsImpostorRole())
+                        continue;
+                    RoleTargetPlayer = player;
+                    RoleTargetRole = player.Data.Role.Role;
+                }
+                if (RoleTargetPlayer == null)
+                    throw new NotImplementedException("RoleTargetPlayer is null");
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    player.Data.Disconnected = true;
+                }
+                RoleTargetPlayer.RpcSetRole(RoleTargetRole, true);
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    player.Data.Disconnected = false;
+                }
+            }, 0.5f);
+            new LateTask(() =>
+            {
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    player.Data.Disconnected = false;
+                }
+                RPCHelper.RpcSyncAllNetworkedPlayer();
+            }, 0.75f);
+            new LateTask(() =>
+            {
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+                {
+                    // RoleSelectHandler.SetTasksBuffer
+                    if (!RoleSelectHandler.SetTasksBuffer.TryGetValue(player.PlayerId, out var tasks))
+                        continue;
+                    player.Data.RpcSetTasks(tasks);
+                }
+                RoleSelectHandler.SetTasksBuffer = null;
+                RoleSelectHandler.IsStartingSerialize = false;
+            }, 1f);
+
+            /*foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
+            {
+                if (player.PlayerId == PlayerControl.LocalPlayer.PlayerId)
+                    continue;
+                DEBUGOnlySender.RpcSetRole(player, RoleTypes.Noisemaker, true);
+            }
+            */
+            //
+            //
+            // RoleSelectHandler.DEBUGOnlySender.SendMessage();
 
             try
             {
@@ -205,7 +285,7 @@ class RoleManagerSelectRolesPatch
             case ModeId.SuperHostRoles:
                 break;
             default:
-                foreach (PlayerControl p in CachedPlayer.AllPlayers)
+                foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
                 {
                     p.RpcSetRole(p.Data.Role.Role);
                 }
@@ -218,7 +298,7 @@ class RoleManagerSelectRolesPatch
         {
             if (AmongUsClient.Instance.GameState != AmongUsClient.GameStates.Started)
                 return;
-            foreach (var pc in CachedPlayer.AllPlayers)
+            foreach (var pc in CachedPlayer.AllPlayers.AsSpan())
             {
                 pc.PlayerControl.RpcSetRole(RoleTypes.Shapeshifter);
             }
@@ -304,7 +384,7 @@ class AllRoleSetClass
         List<PlayerControl> SelectPlayers = new();
         if (CustomOptionHolder.QuarreledOnlyCrewmate.GetBool())
         {
-            foreach (PlayerControl p in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!p.IsImpostor() && !p.IsNeutral() && !p.IsBot())
                 {
@@ -314,7 +394,7 @@ class AllRoleSetClass
         }
         else
         {
-            foreach (PlayerControl p in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!p.IsBot())
                 {
@@ -337,7 +417,7 @@ class AllRoleSetClass
                 RoleHelpers.SetQuarreledRPC(listData[0], listData[1]);
             }
         }
-        ChacheManager.ResetQuarreledChache();
+        CacheManager.ResetQuarreledCache();
     }
 
     public static void LoversRandomSelect()
@@ -364,7 +444,7 @@ class AllRoleSetClass
         bool IsQuarreledDup = CustomOptionHolder.LoversDuplicationQuarreled.GetBool();
         if (CustomOptionHolder.LoversOnlyCrewmate.GetBool())
         {
-            foreach (PlayerControl p in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!p.IsImpostor() && !p.IsNeutral() && !p.IsRole(RoleId.truelover, RoleId.LoversBreaker) && !p.IsBot())
                 {
@@ -377,7 +457,7 @@ class AllRoleSetClass
         }
         else
         {
-            foreach (PlayerControl p in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 if (!IsQuarreledDup || (!p.IsQuarreled() && !p.IsBot()))
                 {
@@ -403,7 +483,7 @@ class AllRoleSetClass
                 RoleHelpers.SetLoversRPC(listData[0], listData[1]);
             }
         }
-        ChacheManager.ResetLoversChache();
+        CacheManager.ResetLoversCache();
     }
     public static void SetPlayerNum()
     {
@@ -730,7 +810,6 @@ class AllRoleSetClass
             RoleId.Assassin => CustomOptionHolder.AssassinPlayerCount,
             RoleId.Marlin => CustomOptionHolder.MarlinPlayerCount,
             RoleId.Arsonist => CustomOptionHolder.ArsonistPlayerCount,
-            RoleId.Chief => CustomOptionHolder.ChiefPlayerCount,
             RoleId.Cleaner => CustomOptionHolder.CleanerPlayerCount,
             RoleId.MadCleaner => CustomOptionHolder.MadCleanerPlayerCount,
             RoleId.Samurai => CustomOptionHolder.SamuraiPlayerCount,
@@ -772,7 +851,6 @@ class AllRoleSetClass
             RoleId.Doppelganger => CustomOptionHolder.DoppelgangerPlayerCount,
             RoleId.Werewolf => CustomOptionHolder.WerewolfPlayerCount,
             RoleId.Knight => Knight.KnightPlayerCount,
-            RoleId.Pavlovsowner => CustomOptionHolder.PavlovsownerPlayerCount,
             RoleId.Camouflager => CustomOptionHolder.CamouflagerPlayerCount,
             RoleId.HamburgerShop => CustomOptionHolder.HamburgerShopPlayerCount,
             RoleId.Penguin => CustomOptionHolder.PenguinPlayerCount,
@@ -796,7 +874,6 @@ class AllRoleSetClass
             RoleId.BlackHatHacker => BlackHatHacker.BlackHatHackerPlayerCount,
             RoleId.PoliceSurgeon => PoliceSurgeon.CustomOptionData.PlayerCount,
             RoleId.MadRaccoon => MadRaccoon.CustomOptionData.PlayerCount,
-            RoleId.Moira => Moira.MoiraPlayerCount,
             RoleId.JumpDancer => JumpDancer.JumpDancerPlayerCount,
             RoleId.Sauner => Sauner.CustomOptionData.PlayerCount,
             RoleId.Bat => Bat.CustomOptionData.PlayerCount,
@@ -817,7 +894,7 @@ class AllRoleSetClass
     {
         CrewmatePlayers = new();
         ImpostorPlayers = new();
-        foreach (PlayerControl Player in CachedPlayer.AllPlayers)
+        foreach (PlayerControl Player in CachedPlayer.AllPlayers.AsSpan())
         {
             if (!Player.Data.Role.IsSimpleRole || Player.IsRole(RoleId.GM))
                 continue;
@@ -905,7 +982,7 @@ class AllRoleSetClass
                 continue;
             TargetRoles.Add((roleInfo.Role, roleInfo.Team));
         }
-        foreach ((RoleId role, TeamRoleType team) roledata in TargetRoles)
+        foreach ((RoleId role, TeamRoleType team) roledata in TargetRoles.AsSpan())
         {
             var option = IntroData.GetOption(roledata.role);
             if (option == null) continue;
@@ -921,7 +998,7 @@ class AllRoleSetClass
             Logger.Info($"IsCrewmate: {assigns.Key.HasFlag(AssignType.Crewmate)}");
             Logger.Info($"IsTenPar: {assigns.Key.HasFlag(AssignType.TenPar)}");
             Logger.Info($"IsNotTenPar: {assigns.Key.HasFlag(AssignType.NotTenPar)}");
-            foreach (var assign in assigns.Value)
+            foreach (var assign in assigns.Value.AsSpan())
             {
                 Logger.Info($"{assign}");
             }
@@ -962,7 +1039,7 @@ class AllRoleSetClass
     public static void SetJumboTicket()
     {
         int JumboSelection = CustomOptionHolder.JumboOption.GetSelection();
-        bool IsCrewmate = ModHelpers.IsSucsessChance(CustomOptionHolder.JumboCrewmateChance.GetSelection());
+        bool IsCrewmate = ModHelpers.IsSuccessChance(CustomOptionHolder.JumboCrewmateChance.GetSelection());
         SetChance(JumboSelection, RoleId.Jumbo, IsCrewmate ? TeamRoleType.Crewmate : TeamRoleType.Impostor);
     }
 }

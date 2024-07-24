@@ -19,7 +19,7 @@ public static class DeviceClass
     public static bool IsVitalRestrict;
     public static bool IsCameraRestrict;
     public static TextMeshPro TimeRemaining;
-    static HashSet<string> DeviceTypes = new();
+    static List<string> DeviceTypes = new();
     public static Dictionary<string, HashSet<PlayerControl>> UsePlayers = new();
     public static Dictionary<string, float> DeviceTimers = new();
     public static float SyncTimer;
@@ -64,7 +64,7 @@ public static class DeviceClass
     {
         if (!AmongUsClient.Instance.AmHost)
             return;
-        foreach (var deviceType in DeviceTypes)
+        foreach (var deviceType in DeviceTypes.AsSpan())
         {
             if (!DeviceTimers.TryGetValue(deviceType, out float timer))
                 continue;
@@ -247,14 +247,11 @@ public static class DeviceClass
 
                             if (BlackHatHacker.IsMyAdmin && BlackHatHacker.BlackHatHackerIsAdminColor.GetBool())
                             {
-                                int color = PlayerControl.LocalPlayer.CurrentOutfit.ColorId;
                                 for (int j = 0; j < counterArea.myIcons.Count; j++)
                                 {
                                     PoolableBehavior icon = counterArea.myIcons[j];
-                                    PlayerControl.LocalPlayer.CurrentOutfit.ColorId = colors.Count > j ? colors[j] : 6;
-                                    PlayerControl.LocalPlayer.SetPlayerMaterialColors(icon.GetComponent<SpriteRenderer>());
+                                    PlayerMaterial.SetColors(colors.Count > j ? colors[j] : 6, icon.GetComponent<SpriteRenderer>());
                                 }
-                                PlayerControl.LocalPlayer.CurrentOutfit.ColorId = color;
                             }
                             else
                             {
@@ -392,7 +389,7 @@ public static class DeviceClass
     {
         if (DeviceTypes.Count <= 0)
             return;
-        foreach (var deviceType in DeviceTypes)
+        foreach (var deviceType in DeviceTypes.AsSpan())
         {
             UsePlayers[deviceType] = new();
             MessageWriter writer = RPCHelper.StartRPC(CustomRPC.SetDeviceTime);

@@ -35,7 +35,7 @@ public static class LegacyOptionDataMigration
                 Logger.Info("Start Preset" + i.ToString() + " Migration", "Migration LagacyOption");
                 Dictionary<uint, byte> SaveValues = new();
                 string presettext = $"Preset{i}";
-                foreach (CustomOption opt in CustomOption.options)
+                foreach (CustomOption opt in CustomOption.options.AsSpan())
                 {
                     int selection = SuperNewRolesPlugin.Instance.Config.Bind(presettext, opt.id.ToString(), opt.defaultSelection).Value;
                     if (selection != opt.defaultSelection)
@@ -59,20 +59,20 @@ public static class LegacyOptionDataMigration
                     writer.Close();
                     if (i == 0)
                         IsFirstPresetUpdated = true;
-                    Logger.Info("Sucsess Preset" + i.ToString() + " Migration", "Migration LagacyOption");
+                    Logger.Info("Success Preset" + i.ToString() + " Migration", "Migration LagacyOption");
                 }
             }
             OptionSaver.WriteOptionData();
             OptionSaver.ReadAndSetOption();
             if (IsFirstPresetUpdated)
             {
-                foreach (CustomOption opt in CustomOption.options)
+                foreach (CustomOption opt in CustomOption.options.AsSpan())
                 {
                     opt.selection = Mathf.Clamp(CustomOption.CurrentValues.TryGetValue((uint)opt.id, out byte valueselection) ? valueselection : opt.defaultSelection, 0, opt.selections.Length - 1);
                 }
                 DeleteOptionConfig();
             }
-            Logger.Info("Sucsess Migration", "Migration LagacyOption");
+            Logger.Info("Success Migration", "Migration LagacyOption");
         }
     }
     public static void DeleteOptionConfig()

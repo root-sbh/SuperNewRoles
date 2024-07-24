@@ -110,11 +110,11 @@ class UpdateSystemPatch
         [HarmonyArgument(2)] byte amount)
     {
         ReplayActionUpdateSystem.Create(systemType, player.PlayerId, amount);
-        if (!RoleHelpers.IsSabotage())
+        if (!RoleHelpers.IsSabotage() && RoleClass.Technician.TechnicianPlayer.Count != 0)
         {
             new LateTask(() =>
             {
-                foreach (PlayerControl p in RoleClass.Technician.TechnicianPlayer)
+                foreach (PlayerControl p in RoleClass.Technician.TechnicianPlayer.AsSpan())
                 {
                     if (p.inVent && p.IsAlive() && Mode.BattleRoyal.Main.VentData.ContainsKey(p.PlayerId) && Mode.BattleRoyal.Main.VentData[p.PlayerId] != null)
                     {
@@ -158,6 +158,8 @@ class LightPatch
 
         __result = player == null || player.IsDead
             ? __instance.MaxLightRadius
+            : player.Object.TryGetRoleBase(out Ubiquitous ubiquitous) && ubiquitous.UnderOperation
+            ? 0f
             : Squid.Abilitys.IsObstruction
             ? Mathf.Lerp(__instance.MaxLightRadius * Squid.SquidDownVision.GetFloat(), __instance.MaxLightRadius * Squid.SquidDownVision.GetFloat(), num)
             : player.Object.IsRole(RoleId.CountChanger) && CountChanger.GetRoleType(player.Object) == TeamRoleType.Crewmate

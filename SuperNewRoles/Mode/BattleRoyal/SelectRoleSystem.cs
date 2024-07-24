@@ -20,6 +20,9 @@ namespace SuperNewRoles.Mode.BattleRoyal
             if (ModeHandler.IsMode(ModeId.BattleRoyal))
             {
                 SelectRoleSystem.OnEndIntro(); Logger.Info("StartOnEndIntro");
+            } else if (ModeHandler.IsMode(ModeId.SuperHostRoles))
+            {
+                OneClickShapeshift.OnStartTurn();
             }
         }
     }
@@ -29,11 +32,29 @@ namespace SuperNewRoles.Mode.BattleRoyal
         public static bool Is;
         public static bool Prefix(NetworkedPlayerInfo __instance, ref bool __result)
         {
-            if (AmongUsClient.Instance is null || AmongUsClient.Instance.GameState != InnerNet.InnerNetClient.GameStates.Started || !ModeHandler.IsMode(ModeId.BattleRoyal) || Is || !Main.IsIntroEnded)
+            if (AmongUsClient.Instance == null ||
+                AmongUsClient.Instance.GameState != InnerNet.InnerNetClient.GameStates.Started)
             {
                 Is = false;
                 __result = true;
                 return true;
+            }
+            if (ModeHandler.IsMode(ModeId.BattleRoyal))
+            {
+                if (Is || !Main.IsIntroEnded)
+                {
+                    Is = false;
+                    __result = true;
+                    return true;
+                }
+            } else if (ModeHandler.IsMode(ModeId.SuperHostRoles))
+            {
+                if (RoleSelectHandler.IsStartingSerialize || HideChat.CanSerializeGameData || !AntiBlackOut.CantSendGameData())
+                {
+                    Is = false;
+                    __result = true;
+                    return true;
+                }
             }
             __instance.ClearDirtyBits();
             __result = false;
@@ -47,10 +68,10 @@ namespace SuperNewRoles.Mode.BattleRoyal
         }
         public static void TeamOnlyChat()
         {
-            foreach (BattleTeam team in BattleTeam.BattleTeams)
+            foreach (BattleTeam team in BattleTeam.BattleTeams.AsSpan())
             {
                 Logger.Info("ーー終了ーー");
-                foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+                foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
                 {
                     if (player.IsBot()) continue;
                     if (player is null) continue;
@@ -58,10 +79,10 @@ namespace SuperNewRoles.Mode.BattleRoyal
                     Logger.Info($"{player.GetDefaultName()} : {player.Data.IsDead} : {!team.IsTeam(player)}");
                 }
                 Logger.Info("ーー開始ーー");
-                foreach (PlayerControl player in team.TeamMember)
+                foreach (PlayerControl player in team.TeamMember.AsSpan())
                 {
                     if (player is null) continue;
-                    RPCHelper.RpcSyncGameData(player.GetClientId());
+                    RPCHelper.RpcSyncAllNetworkedPlayer(player.GetClientId());
                 }
             }
         }
@@ -69,18 +90,18 @@ namespace SuperNewRoles.Mode.BattleRoyal
         {
             Main.IsIntroEnded = true;
             if (!AmongUsClient.Instance.AmHost) return;
-            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 p.Data.IsDead = false;
             }
-            RPCHelper.RpcSyncGameData();
+            RPCHelper.RpcSyncAllNetworkedPlayer();
             MeetingRoomManager.Instance.AssignSelf(PlayerControl.LocalPlayer, null);
             //if (AmongUsClient.Instance.AmHost)
             {
                 FastDestroyableSingleton<HudManager>.Instance.OpenMeetingRoom(PlayerControl.LocalPlayer);
                 PlayerControl.LocalPlayer.RpcStartMeeting(null);
             }
-            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 p.RpcSetName(p.GetDefaultName());
             }
@@ -117,13 +138,15 @@ namespace SuperNewRoles.Mode.BattleRoyal
             public static void Postfix()
             {
                 if (!AmongUsClient.Instance.AmHost) return;
+                if (ModeHandler.IsMode(ModeId.SuperHostRoles))
+                    HideChat.OnStartMeeting();
                 if (!ModeHandler.IsMode(ModeId.BattleRoyal)) return;
                 if (Main.IsRoleSetted) return;
                 new LateTask(() =>
                 {
                     TeamOnlyChat();
                     BattleTeam team = BattleTeam.GetTeam(PlayerControl.LocalPlayer);
-                    foreach (PlayerControl player in PlayerControl.AllPlayerControls)
+                    foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
                     {
                         if (player.IsBot()) continue;
                         if (player is null) continue;
@@ -141,29 +164,29 @@ namespace SuperNewRoles.Mode.BattleRoyal
             if (Main.IsRoleSetted) return;
             Main.IsRoleSetted = true;
             SyncBattleOptions.CustomSyncOptions();
-            foreach (BattleTeam team in BattleTeam.BattleTeams)
+            foreach (BattleTeam team in BattleTeam.BattleTeams.AsSpan())
             {
                 bool CanRevive = false;
-                foreach (PlayerControl player in team.TeamMember)
+                foreach (PlayerControl player in team.TeamMember.AsSpan())
                 {
                     if (Reviver.IsReviver(player))
                         CanRevive = true;
                 }
                 if (CanRevive)
                 {
-                    foreach (PlayerControl player in team.TeamMember)
+                    foreach (PlayerControl player in team.TeamMember.AsSpan())
                     {
                         PlayerAbility.GetPlayerAbility(player).CanRevive = true;
                     }
                 }
             }
-            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 p.Data.IsDead = false;
                 if (!p.IsBot()) continue;
                 p.RpcSnapTo(new(999, 999));
             }
-            RPCHelper.RpcSyncGameData();
+            RPCHelper.RpcSyncAllNetworkedPlayer();
             SyncBattleOptions.CustomSyncOptions();
             ChangeName.UpdateName();
         }
@@ -177,15 +200,14 @@ namespace SuperNewRoles.Mode.BattleRoyal
             {
                 Commandsb.AddRange(com.Split("　"));
             }
-            var Commands = Commandsb.ToArray();
-            if (Commands[0].Equals("/SetRole", StringComparison.OrdinalIgnoreCase))
+            if (Commandsb[0].Equals("/SetRole", StringComparison.OrdinalIgnoreCase))
             {
-                if (Commands.Length <= 1)
+                if (Commandsb.Count <= 1)
                 {
                     AddChatPatch.SendCommand(source, ModTranslation.GetString("BattleRoyalRoleNoneText"), BattleRoyalCommander);
                     return false;
                 }
-                var data = RoleNames.FirstOrDefault(x => x.Key.Equals(Commands[1], StringComparison.OrdinalIgnoreCase));
+                var data = RoleNames.FirstOrDefault(x => x.Key.Equals(Commandsb[1], StringComparison.OrdinalIgnoreCase));
                 //nullチェック
                 if (data.Equals(default(KeyValuePair<string, RoleId>)))
                 {
@@ -195,14 +217,14 @@ namespace SuperNewRoles.Mode.BattleRoyal
                 {
                     source.SetRoleRPC(data.Value);
                     string text = string.Format(ModTranslation.GetString("BattleRoyalSetRoleText"), source.GetDefaultName(), CustomRoles.GetRoleName(data.Value, IsImpostorReturn: true));
-                    foreach (PlayerControl teammember in BattleTeam.GetTeam(source).TeamMember)
+                    foreach (PlayerControl teammember in BattleTeam.GetTeam(source).TeamMember.AsSpan())
                     {
                         if (teammember == null) continue;
                         AddChatPatch.SendCommand(teammember, text, BattleRoyalCommander);
                     }
                     Main.RoleSettedPlayers.Add(source);
                     bool IsEnd = true;
-                    foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+                    foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
                     {
                         if (p.IsBot()) continue;
                         if (!Main.RoleSettedPlayers.IsCheckListPlayerControl(p))
@@ -222,12 +244,12 @@ namespace SuperNewRoles.Mode.BattleRoyal
         }
         public static void OnEndSetRole()
         {
-            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 p.Data.IsDead = false;
             }
-            RPCHelper.RpcSyncGameData();
-            foreach (PlayerControl p in PlayerControl.AllPlayerControls)
+            RPCHelper.RpcSyncAllNetworkedPlayer();
+            foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
             {
                 p.MyPhysics.RpcExitVentUnchecked(0);
             }

@@ -39,7 +39,7 @@ public static class FixedUpdate
             }
         }
         else if
-            ((playerSHR is IKiller &&
+            ((playerSHR != null && playerSHR.HasKillButtonClient &&
             !PlayerControl.LocalPlayer.IsImpostor())
             ||
             PlayerControl.LocalPlayer.IsRole
@@ -67,7 +67,7 @@ public static class FixedUpdate
         {
             PoliceSurgeon.FixedUpdate();
         }
-        foreach (PlayerControl p in BotManager.AllBots)
+        foreach (PlayerControl p in BotManager.AllBots.AsSpan())
         {
             p.NetTransform.RpcSnapTo(new Vector2(99999, 99999));
         }

@@ -15,7 +15,7 @@ public static class Main
         IsLocalEnd = false;
         SuperNewRolesPlugin.Logger.LogInfo("スタートサボ！");
         SabotageManager.thisSabotage = SabotageManager.CustomSabotage.CognitiveDeficit;
-        foreach (Arrow aw in ArrowData)
+        foreach (Arrow aw in ArrowData.AsSpan())
         {
             GameObject.Destroy(aw.arrow);
         }
@@ -109,7 +109,7 @@ public static class Main
                 }
                 ArrowUpdateColor = 0.25f;
             }
-            foreach (Arrow arrow in ArrowData)
+            foreach (Arrow arrow in ArrowData.AsSpan())
             {
                 arrow.Update(Data[arrowindex], SetColor);
                 arrowindex++;
@@ -141,14 +141,14 @@ public static class Main
             if (UpdateTime <= 0)
             {
                 List<PlayerControl> target = new();
-                foreach (PlayerControl p in CachedPlayer.AllPlayers)
+                foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
                 {
                     if (p.IsAlive())
                     {
                         target.Add(p);
                     }
                 }
-                foreach (PlayerControl p in CachedPlayer.AllPlayers)
+                foreach (PlayerControl p in CachedPlayer.AllPlayers.AsSpan())
                 {
                     if (p.IsDead()) continue;
                     if (target.Count > 0)
@@ -173,12 +173,12 @@ public static class Main
             {
                 TaskBar.Instance.gameObject.SetActive(IsLocalEnd);
             }
-            foreach (Arrow aw in ArrowData)
+            foreach (Arrow aw in ArrowData.AsSpan())
             {
                 GameObject.Destroy(aw.arrow);
             }
             ArrowData = new List<Arrow>();
-            foreach (PlayerControl p2 in CachedPlayer.AllPlayers)
+            foreach (PlayerControl p2 in CachedPlayer.AllPlayers.AsSpan())
             {
                 p2.resetChange();
             }

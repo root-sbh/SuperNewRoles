@@ -21,9 +21,9 @@ public static class Balancer
     public static CustomOption BalancerVoteTime;
     public static void SetupCustomOptions()
     {
-        BalancerOption = CustomOption.SetupCustomRoleOption(OptionId, true, RoleId.Balancer);
-        BalancerPlayerCount = CustomOption.Create(OptionId + 1, true, CustomOptionType.Crewmate, "SettingPlayerCountName", CustomOptionHolder.CrewPlayers[0], CustomOptionHolder.CrewPlayers[1], CustomOptionHolder.CrewPlayers[2], CustomOptionHolder.CrewPlayers[3], BalancerOption);
-        BalancerVoteTime = CustomOption.Create(OptionId + 2, true, CustomOptionType.Crewmate, "BalancerVoteTime", 30f, 0f, 180f, 2.5f, BalancerOption);
+        BalancerOption = CustomOption.SetupCustomRoleOption(OptionId, false, RoleId.Balancer);
+        BalancerPlayerCount = CustomOption.Create(OptionId + 1, false, CustomOptionType.Crewmate, "SettingPlayerCountName", CustomOptionHolder.CrewPlayers[0], CustomOptionHolder.CrewPlayers[1], CustomOptionHolder.CrewPlayers[2], CustomOptionHolder.CrewPlayers[3], BalancerOption);
+        BalancerVoteTime = CustomOption.Create(OptionId + 2, false, CustomOptionType.Crewmate, "BalancerVoteTime", 30f, 0f, 180f, 2.5f, BalancerOption);
     }
 
     public static List<PlayerControl> BalancerPlayer;
@@ -197,7 +197,7 @@ public static class Balancer
                         if (BackPictureObject != null) BackPictureObject.color = new Color32(255, 255, 255, alpha);
                     }
                     Vector3 speed = new(0.6f, 0, 0);
-                    foreach (var objs in ChainObjects)
+                    foreach (var objs in ChainObjects.AsSpan())
                     {
                         objs.Item1.transform.localPosition -= speed;
                     }
@@ -526,7 +526,7 @@ public static class Balancer
                     state.selecting = false;
                     state.target1 = byte.MaxValue;
                     state.target2 = byte.MaxValue;
-                    SendChat(balancer, ModTranslation.GetString("BalancerSelectionCancelText"), ModTranslation.GetString("BalancerSelectionCancel"));
+                    AddChatPatch.SendChat(balancer, ModTranslation.GetString("BalancerSelectionCancelText"), ModTranslation.GetString("BalancerSelectionCancel"));
                     return false;
                 }
                 if (targetId == balancerId)
@@ -535,7 +535,7 @@ public static class Balancer
                     state.selecting = false;
                     state.target1 = byte.MaxValue;
                     state.target2 = byte.MaxValue;
-                    SendChat(balancer, ModTranslation.GetString("BalancerSelectionSelfSelectText"), ModTranslation.GetString("BalancerSelectionCancel"));
+                    AddChatPatch.SendChat(balancer, ModTranslation.GetString("BalancerSelectionSelfSelectText"), ModTranslation.GetString("BalancerSelectionCancel"));
                     return true;
                 }
 
@@ -552,13 +552,13 @@ public static class Balancer
 
                 if (state.target1 == byte.MaxValue)
                 {
-                    SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}", ModTranslation.GetString("BalancerSelection"));
+                    AddChatPatch.SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}", ModTranslation.GetString("BalancerSelection"));
                     return false;
                 }
                 if (state.target2 == byte.MaxValue)
                 {
                     var pc = ModHelpers.GetPlayerControl(state.target1);
-                    SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}：{pc?.name}\n\n{ModTranslation.GetString("Balancer2nd")}", ModTranslation.GetString("BalancerSelection"));
+                    AddChatPatch.SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}：{pc?.name}\n\n{ModTranslation.GetString("Balancer2nd")}", ModTranslation.GetString("BalancerSelection"));
                     return false;
                 }
 
@@ -575,7 +575,7 @@ public static class Balancer
 
                 state.selecting = true;
                 //Utils.SendMessage(Translator.GetString("message"), Player.PlayerId);
-                SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}", ModTranslation.GetString("BalancerSelection"));
+                AddChatPatch.SendChat(balancer, $"{ModTranslation.GetString("BalancerSelectionText")}\n{ModTranslation.GetString("Balancer1st")}", ModTranslation.GetString("BalancerSelection"));
                 Logger.Info($"BalancerSelectStart balancer: {balancerId}", "Balancer.MeetingHudCastVote_Prefix");
 
                 return false;
@@ -586,7 +586,7 @@ public static class Balancer
         private static void StartBalancerAbility(byte balancerId, byte target1Id, byte target2Id)
         {
             //会議終了-天秤会議開始間に見えるゲーム画面の視界範囲を0にするためにプレイヤー位置を変更（視点は固定）
-            PlayerControl.AllPlayerControls.ToArray().Where(x => x.IsAlive()).Do(x => x.RpcSnapTo(new(-30, 30)));
+            CachedPlayer.AllPlayers.Where(x => x.IsAlive()).Do(x => ((PlayerControl)x).RpcSnapTo(new(-30, 30)));
 
             _ = new LateTask(() => SwitchBalancerMeeting(balancerId, target1Id, target2Id), 0.3f, "SwitchBalancerMeeting");
 
@@ -640,7 +640,7 @@ public static class Balancer
         {
             new LateTask(() =>
             {
-                foreach (var player in PlayerControl.AllPlayerControls.ToArray().Where(x => x != null && !x.Data.IsDead && x.IsRole(RoleId.Balancer)))
+                foreach (var player in CachedPlayer.AllPlayers.Where(x => x != null && !x.Data.IsDead && ((PlayerControl)x).IsRole(RoleId.Balancer)))
                 {
                     if (!State.TryGetValue(player.PlayerId, out var state))
                     {
@@ -651,10 +651,8 @@ public static class Balancer
                         NumOfBalance[player.PlayerId] = numOfBalance = OptionNumOfBalance;
                     }
 
-                    if (numOfBalance > 0)
-                        SendChat(player, ModTranslation.GetString("BalancerForActivate"), ModTranslation.GetString("BalancerName"));
-                    else
-                        SendChat(player, ModTranslation.GetString("BalancerUsed"), ModTranslation.GetString("BalancerName"));
+                    if (numOfBalance > 0) AddChatPatch.SendChat(player, ModTranslation.GetString("BalancerForActivate"), ModTranslation.GetString("BalancerName"));
+                    else AddChatPatch.SendChat(player, ModTranslation.GetString("BalancerUsed"), ModTranslation.GetString("BalancerName"));
                 }
             }, 3f, "StartMeeting BalancerGuide");
         }
@@ -686,7 +684,7 @@ public static class Balancer
             dispText = $"<size=100%>{dispText}</size>";
             dispText = $"{decoration}\n{dispText}\n";
 
-            SendChat(null, dispText);
+            AddChatPatch.SendChat(null, dispText);
         }
         public static void AfterMeetingTasks()
         {
@@ -703,11 +701,6 @@ public static class Balancer
             targetplayerleft = null;
             targetplayerright = null;
             Logger.Info($"AfterBalancerMeeting Clear", "Balancer.AfterMeetingTasks");
-        }
-        private static void SendChat(PlayerControl target, string text, string title = "")
-        {
-            if (title != null && title != "") text = $"<size=100%><color=#ff8000>【{title}】</color></size>\n{text}";
-            AddChatPatch.SendCommand(target, "", text);
         }
         public static void SetMeetingSettings(IGameOptions optdata)
         {
