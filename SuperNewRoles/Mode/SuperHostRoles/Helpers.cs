@@ -28,9 +28,9 @@ public static class Helpers
         }
         sender.SendMessage();
     }
-    public static void RpcSetRoleImmediately(this PlayerControl player, RoleTypes role, bool canOverride = true)
+    public static void RpcSetRoleImmediately(this PlayerControl player, RoleTypes role, bool canOverride = true, int targetClientId = -1)
     {
-        MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SetRole, SendOption.Reliable);
+        MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(player.NetId, (byte)RpcCalls.SetRole, SendOption.Reliable, targetClientId);
         writer.Write((ushort)role);
         writer.Write(canOverride);
         AmongUsClient.Instance.FinishRpcImmediately(writer);
@@ -104,11 +104,11 @@ public static class Helpers
             new LateTask(() =>
             {
                 SyncSetting.CustomSyncSettings(target, isCooldownTwice: true);
+                MurderHelpers.RpcForceGuard(shower, target, shower);
                 MurderHelpers.RpcMurderPlayerFlags(shower, target,
                     MurderResultFlags.FailedProtected, shower);
-                MurderHelpers.RpcForceGuard(shower, target, shower);
-                new LateTask(() => SyncSetting.CustomSyncSettings(target), 0.1f);
-            }, 0.1f);
+                new LateTask(() => SyncSetting.CustomSyncSettings(target), 0.15f);
+            }, 0.15f);
         }
     }
     /// <summary>

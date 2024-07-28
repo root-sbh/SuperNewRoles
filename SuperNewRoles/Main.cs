@@ -61,6 +61,11 @@ public partial class SuperNewRolesPlugin : BasePlugin
     public static string NewVersion = "";
     public static string thisname;
     public static string ThisPluginModName;
+
+    public const string SteamName = "steam";
+    public const string EpicGamesStoreName = "egs";
+    public static bool IsEpic => Constants.GetPurchasingPlatformType() == EpicGamesStoreName;
+
     //対応しているバージョン。nullなら全て。
     public static string[] SupportVanilaVersion = new string[] { "2024.3.5" };
 
@@ -68,7 +73,6 @@ public partial class SuperNewRolesPlugin : BasePlugin
     {
         Logger = Log;
         Instance = this;
-
         Task LoadHarmonyPatchTask = Task.Run(() =>
         {
             Logger.LogInfo("Start Patch Harmony");
@@ -225,6 +229,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
         Logger.LogInfo("Start UpdateCPUProcessorAffinity");
         if (Environment.ProcessorCount > 1)
         {
+            // コア数上限突破の場合は全てのコアを使う
             if (Environment.ProcessorCount < System.Numerics.BitOperations.Log2(affinity))
             {
                 affinity = 1;
@@ -235,7 +240,7 @@ public partial class SuperNewRolesPlugin : BasePlugin
             }
             System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = (IntPtr)affinity;
         }
-        Logger.LogInfo("End UpdateCPUProcessorAffinity");
+        Logger.LogInfo($"UpdatedCPUProcessorAffinity To: {affinity}");
     }
     // https://github.com/yukieiji/ExtremeRoles/blob/master/ExtremeRoles/Patches/Manager/AuthManagerPatch.cs
     [HarmonyPatch(typeof(AuthManager), nameof(AuthManager.CoConnect))]

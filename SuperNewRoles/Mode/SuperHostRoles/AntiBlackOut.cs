@@ -159,22 +159,21 @@ public static class AntiBlackOut
     }
     private static void SendOtherCrewmate(PlayerControl seer)
     {
-        CustomRpcSender sender = CustomRpcSender.Create($"StartAntiBlackOut_To:{(seer?.PlayerId.ToString() ?? "All")}", sendOption: Hazel.SendOption.Reliable);
+        Logger.Info($"StartAntiBlackOut_To:{(seer?.PlayerId.ToString() ?? "All")}");
         int seerClientId = seer?.GetClientId() ?? -1;
         PlayerControl impostorPlayer = seer ?? PlayerControl.LocalPlayer;
 
         int numMeeting = impostorPlayer.RemainingEmergencies;
-        sender.RpcSetRole(impostorPlayer, RoleTypes.Impostor, true, seerClientId);
+        impostorPlayer.RpcSetRoleImmediately(RoleTypes.Impostor, true, seerClientId);
         impostorPlayer.RemainingEmergencies = numMeeting;
         foreach (PlayerControl target in CachedPlayer.AllPlayers.AsSpan())
         {
             if (target == impostorPlayer)
                 continue;
             numMeeting = target.RemainingEmergencies;
-            sender.RpcSetRole(target, RoleTypes.Crewmate, true, seerClientId);
+            target.RpcSetRoleImmediately(RoleTypes.Crewmate, true, seerClientId);
             target.RemainingEmergencies = numMeeting;
         }
-        sender.SendMessage();
     }
     public static void OnWrapUp()
     {
@@ -193,6 +192,7 @@ public static class AntiBlackOut
         {
             if (playerData?.PlayerInfo != null)
                 playerData.PlayerInfo.IsDead = playerData.IsDead;
+
         }
 
         new LateTask(() => {
@@ -224,6 +224,11 @@ public static class AntiBlackOut
                 if (player.IsDead() && !RoleManager.IsGhostRole(ToRoleTypes))
                     Logger.Info($"What's this!? {ToRoleTypes} {player.PlayerId}");
                 int numMeeting = player.RemainingEmergencies;
+
+                // どーせIsDeadはtrueになるからfalseにして、壁抜けできるようにする
+                if (player.AmOwner && RoleManager.IsGhostRole(ToRoleTypes))
+                    player.Data.IsDead = false;
+
                 SyncSetting.CustomSyncSettings(player);
                 player.RpcSetRole(ToRoleTypes, true);
                 new LateTask(() => player.RemainingEmergencies = numMeeting, 0.5f);
@@ -239,7 +244,10 @@ public static class AntiBlackOut
                 {
                     if (desyncDetail.player.IsMod() || desyncDetail.player.IsDead())
                         continue;
+                    int numMeeting = desyncDetail.player.RemainingEmergencies;
+                    SyncSetting.CustomSyncSettings(desyncDetail.player);
                     desyncDetail.player.RpcSetRoleDesync(desyncDetail.role, true);
+                    new LateTask(() => desyncDetail.player.RemainingEmergencies = numMeeting, 0.5f);
                     foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
                     {
                         if (player == desyncDetail.player)
