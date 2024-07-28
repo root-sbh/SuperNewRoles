@@ -1645,6 +1645,7 @@ public static class RoleClass
         public static bool IsCheckImpostor;
         public static bool IsAliveWin;
         public static float CoolTime;
+        public static readonly string Suffix = ModHelpers.Cs(color, " ▲");
         public static Sprite GetButtonSprite() => ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.DemonButton.png", 115f);
 
         public static void ClearAndReload()
@@ -1783,9 +1784,9 @@ public static class RoleClass
         public static bool TriggerArsonistWin;
         public static bool IsDouse;
         public static PlayerControl DouseTarget;
+        public static readonly string Suffix = ModHelpers.Cs(color, " §");
         public static Sprite GetDouseButtonSprite() => ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.ArsonistDouse.png", 115f);
         public static Sprite GetIgniteButtonSprite() => ModHelpers.LoadSpriteFromResources("SuperNewRoles.Resources.ArsonistIgnite.png", 115f);
-
 
         public static void ClearAndReload()
         {
@@ -2417,6 +2418,7 @@ public static class RoleClass
         public static int DeathDefaultTurn;
         public static int DeathTurn;
         public static PlayerData<byte> Data;
+        public static readonly string Suffix = ModHelpers.Cs(color, "◀");
         public static bool IsLocalOn => Data.Local != 255;
         public static PlayerControl CurrentTarget => IsLocalOn ? ModHelpers.PlayerById(Data[CachedPlayer.LocalPlayer.PlayerId]) : null;
 
@@ -2761,6 +2763,8 @@ public static class RoleClass
         public static Color32 color = new(210, 105, 30, byte.MaxValue);
         public static bool IsQuarreledWin;
         public static bool IsQuarreledSuicide;
+        public static readonly string Suffix = ModHelpers.Cs(color, "○");
+
         public static void ClearAndReload()
         {
             QuarreledPlayer = new List<List<PlayerControl>>();
@@ -2777,6 +2781,7 @@ public static class RoleClass
         public static bool IsSingleTeam;
         public static List<List<PlayerControl>> FakeLoverPlayers;
         public static List<byte> FakeLovers;
+        public static readonly string Suffix = ModHelpers.Cs(color, " ♥");
         public static void ClearAndReload()
         {
             LoversPlayer = new();
