@@ -105,7 +105,7 @@ public class FixedUpdate
                 DeviceClass.FixedUpdate();
                 SabotageManager.Update();
                 sw.Start();
-                SetNamesClass.Postfix(__instance);
+                SetNamesClass.Update(__instance);
                 sw.Stop();
                 Logger.Info($"Time: {(int)((double)sw.ElapsedTicks / Stopwatch.Frequency * 1000000)}μs", "SetNamesUpdate");
                 sw.Reset();

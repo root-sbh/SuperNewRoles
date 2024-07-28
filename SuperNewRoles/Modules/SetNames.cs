@@ -233,7 +233,7 @@ public class SetNamesClass
     }
 
     //TODO: 本来なら毎フレームではなくRole変更やSabotage、タスク完了など、名前/RoleInfoの変更時のみ呼び出されるべき
-    public static void Postfix(PlayerControl __instance)
+    public static void Update(PlayerControl __instance)
     {
         RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
         bool CanGhostSeeRoles = CheckCanGhostSeeRoles();
