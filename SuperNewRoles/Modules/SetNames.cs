@@ -276,7 +276,7 @@ public class SetNamesClass
     }
     public static void JumboSet()
     {
-        foreach (PlayerControl p in RoleClass.Jumbo.BigPlayer)
+        foreach (PlayerControl p in RoleClass.Jumbo.JumboPlayer.AsSpan())
         {
             if (!RoleClass.Jumbo.JumboSize.ContainsKey(p.PlayerId)) continue;
             SetPlayerNameText(p, p.NameText().text + $"({(int)(RoleClass.Jumbo.JumboSize[p.PlayerId] * 15)})");
