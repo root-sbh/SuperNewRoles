@@ -20,14 +20,6 @@ namespace SuperNewRoles.Modules;
 
 public class SetNamesClass
 {
-    public static string QuarreledSuffix = ModHelpers.Cs(RoleClass.Quarreled.color, " ○");
-    public static string LoversSuffix = ModHelpers.Cs(RoleClass.Lovers.color, " ♥");
-    public static string DemonSuffix = ModHelpers.Cs(RoleClass.Demon.color, " ▲");
-    public static string ArsonistSuffix = ModHelpers.Cs(RoleClass.Arsonist.color, " §");
-    public static string SatsumaimoCrewSuffix = ModHelpers.Cs(Palette.White, " (C)");
-    public static string SatsumaimoMadSuffix = ModHelpers.Cs(RoleClass.ImpostorRed, " (M)");
-    public static string PartTimerSuffix = ModHelpers.Cs(RoleClass.PartTimer.color, "◀");
-
     public static Dictionary<int, string> PlayerNameTexts = new();
     public static Dictionary<int, PlayerSuffixBuilder> PlayerNameSuffixes = new();
     public static Dictionary<int, Color> PlayerNameColors = new();
@@ -246,14 +238,11 @@ public class SetNamesClass
         RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
         bool CanGhostSeeRoles = CheckCanGhostSeeRoles();
         bool CanSeeAllRole =
-            CanGhostSeeRoles ||
-            Debugger.canSeeRole ||
-            (PlayerControl.LocalPlayer.GetRoleBase() is INameHandler nameHandler &&
-            nameHandler.AmAllRoleVisible);
+            CanGhostSeeRoles || Debugger.canSeeRole ||
+            (PlayerControl.LocalPlayer.GetRoleBase() is INameHandler nameHandler &&nameHandler.AmAllRoleVisible);
         bool CanSeeImpostor =
             Madmate.CheckImpostor(PlayerControl.LocalPlayer) ||
-            LocalRole == RoleId.MadKiller ||
-            LocalRole == RoleId.Marlin ||
+            LocalRole == RoleId.MadKiller || LocalRole == RoleId.Marlin ||
             (RoleClass.Demon.IsCheckImpostor && LocalRole == RoleId.Demon) ||
             (LocalRole == RoleId.Safecracker && Safecracker.CheckTask(__instance, Safecracker.CheckTasks.CheckImpostor));
         int CanSeeImpostorRoleTurnRemaining = PlusGameOptions.CanSeeImpostorRoleTurn.GetInt() - ReportDeadBodyPatch.MeetingCount.all;
@@ -265,97 +254,13 @@ public class SetNamesClass
         PlayerNameColorUpdated.Clear();
         PlayerRoleInfoUpdated.Clear();
 
-        CheckSuffixes();
-        CustomRoles.NameHandler();
-
-        switch (LocalRole)
-        {
-            case RoleId.PartTimer:
-                if (RoleClass.PartTimer.IsLocalOn)
-                {
-                    if (CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool())
-                    {
-                        SetPlayerRoleInfo(RoleClass.PartTimer.CurrentTarget);
-                        SetPlayerNameColor(RoleClass.PartTimer.CurrentTarget);
-                        PlayerNameColorUpdated.Add(RoleClass.PartTimer.CurrentTarget.PlayerId);
-                    }
-                    else
-                        PlayerNameSuffixes[RoleClass.PartTimer.CurrentTarget.PlayerId].PartTimer = true;
-                }
-                break;
-            case RoleId.TheFirstLittlePig:
-            case RoleId.TheSecondLittlePig:
-            case RoleId.TheThirdLittlePig:
-                foreach (var players in TheThreeLittlePigs.TheThreeLittlePigsPlayer)
-                {
-                    if (!players.Contains(PlayerControl.LocalPlayer)) continue;
-                    foreach (PlayerControl p in players)
-                    {
-                        SetPlayerRoleInfo(p);
-                        SetPlayerNameColor(p);
-                        PlayerNameColorUpdated.Add(p.PlayerId);
-                    }
-                    break;
-                }
-                break;
-            case RoleId.OrientalShaman:
-                foreach (var date in OrientalShaman.OrientalShamanCausative)
-                {
-                    if (date.Key != PlayerControl.LocalPlayer.PlayerId) continue;
-                    SetPlayerRoleInfo(ModHelpers.PlayerById(date.Value));
-                    SetPlayerNameColor(ModHelpers.PlayerById(date.Value));
-                    PlayerNameColorUpdated.Add(date.Value);
-                }
-                break;
-            case RoleId.ShermansServant:
-                foreach (var date in OrientalShaman.OrientalShamanCausative)
-                {
-                    if (date.Value != PlayerControl.LocalPlayer.PlayerId) continue;
-                    SetPlayerRoleInfo(ModHelpers.PlayerById(date.Key));
-                    SetPlayerNameColor(ModHelpers.PlayerById(date.Key));
-                    PlayerNameColorUpdated.Add(date.Value);
-                }
-                break;
-            case RoleId.Pokerface:
-                Pokerface.PokerfaceTeam team = Pokerface.GetPokerfaceTeam(PlayerControl.LocalPlayer.PlayerId);
-                if (team != null)
-                {
-                    foreach (PlayerControl member in team.TeamPlayers)
-                    {
-                        SetPlayerNameColor(member, Pokerface.RoleData.color);
-                    }
-                }
-                break;
-            case RoleId.Stefinder:
-                //case RoleId.Stefinder1:
-                if (RoleClass.Stefinder.IsKill) SetPlayerNameColor(PlayerControl.LocalPlayer, Color.red);
-                break;
-            case RoleId.SatsumaAndImo:
-                SatsumaAndImo satsumaAndImo = RoleBaseManager.GetLocalRoleBase<SatsumaAndImo>();
-                if (satsumaAndImo == null) return;
-                if (satsumaAndImo.TeamState == SatsumaAndImo.SatsumaTeam.Crewmate)
-                {//名前に(C)をつける
-                    PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].SatsumaimoCrew = true;
-                }
-                else if (satsumaAndImo.TeamState == SatsumaAndImo.SatsumaTeam.Madmate)
-                {
-                    PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].SatsumaimoMad = true;
-                }
-                break;
-        }
-        foreach (byte MyPartTimer in RoleClass.PartTimer.Data.WhereSelect(x => x.Value == CachedPlayer.LocalPlayer.PlayerId, x => x.Key))
-        {
-            SetPlayerRoleInfo(ModHelpers.GetPlayerControl(MyPartTimer));
-            SetPlayerNameColor(ModHelpers.GetPlayerControl(MyPartTimer));
-        }
-
-        ReadOnlySpan<CachedPlayer> Players = CachedPlayer.AllPlayers.AsSpan();
-        foreach (PlayerControl player in Players)
+        foreach (PlayerControl player in CachedPlayer.AllPlayers.AsSpan())
         {
             if (!PlayerNameTexts.ContainsKey(player.PlayerId)) PlayerNameTexts[player.PlayerId] = player.CurrentOutfit.PlayerName;
             if (!PlayerNameSuffixes.ContainsKey(player.PlayerId)) PlayerNameSuffixes[player.PlayerId] = new(player);
 
             InitPlayerNameColors(player);
+            PlayerNameSuffixes[player.PlayerId].InitSuffix();
 
             var check = CheckView(player);
 
@@ -370,10 +275,11 @@ public class SetNamesClass
         if (MeetingHud.Instance) ApplyAllMeetingPlayerNameView();
         return;
 
-        //return TupleValue(NameColorflg, SetColor(null = DefaultRoleColor), RoleInfoflg)
+
+        //return ValueTuple(NameColorflg, SetColor(null = DefaultRoleColor), RoleInfoflg)
         ValueTuple<bool, Color?, bool> CheckView(PlayerControl player)
         {
-            if (player == PlayerControl.LocalPlayer) return (true, null, true);
+            if (player == PlayerControl.LocalPlayer) return CheckMyView();
             if (CanSeeAllRole) return (true, null, true);
             if (LocalRole == RoleId.God && (RoleClass.IsMeeting || player.IsAlive())) return (true, null, true);
 
@@ -447,240 +353,282 @@ public class SetNamesClass
             return check;
         }
 
+        ValueTuple<bool, Color?, bool> CheckMyView()
+        {
+            CustomRoles.NameHandler();
+
+            switch (LocalRole)
+            {
+                case RoleId.PartTimer:
+                    if (RoleClass.PartTimer.IsLocalOn)
+                    {
+                        if (CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool())
+                        {
+                            SetPlayerRoleInfo(RoleClass.PartTimer.CurrentTarget);
+                            SetPlayerNameColor(RoleClass.PartTimer.CurrentTarget);
+                        }
+                    }
+                    break;
+                case RoleId.TheFirstLittlePig:
+                case RoleId.TheSecondLittlePig:
+                case RoleId.TheThirdLittlePig:
+                    foreach (var players in TheThreeLittlePigs.TheThreeLittlePigsPlayer)
+                    {
+                        if (!players.Contains(PlayerControl.LocalPlayer)) continue;
+                        foreach (PlayerControl p in players)
+                        {
+                            SetPlayerRoleInfo(p);
+                            SetPlayerNameColor(p);
+                        }
+                        break;
+                    }
+                    break;
+                case RoleId.OrientalShaman:
+                    foreach (var date in OrientalShaman.OrientalShamanCausative)
+                    {
+                        if (date.Key != PlayerControl.LocalPlayer.PlayerId) continue;
+                        SetPlayerRoleInfo(ModHelpers.PlayerById(date.Value));
+                        SetPlayerNameColor(ModHelpers.PlayerById(date.Value));
+                    }
+                    break;
+                case RoleId.ShermansServant:
+                    foreach (var date in OrientalShaman.OrientalShamanCausative)
+                    {
+                        if (date.Value != PlayerControl.LocalPlayer.PlayerId) continue;
+                        SetPlayerRoleInfo(ModHelpers.PlayerById(date.Key));
+                        SetPlayerNameColor(ModHelpers.PlayerById(date.Key));
+                    }
+                    break;
+                case RoleId.Pokerface:
+                    Pokerface.PokerfaceTeam team = Pokerface.GetPokerfaceTeam(PlayerControl.LocalPlayer.PlayerId);
+                    if (team != null)
+                    {
+                        foreach (PlayerControl member in team.TeamPlayers)
+                        {
+                            SetPlayerNameColor(member, Pokerface.RoleData.color);
+                        }
+                    }
+                    break;
+                case RoleId.Stefinder:
+                    //case RoleId.Stefinder1:
+                    if (RoleClass.Stefinder.IsKill) SetPlayerNameColor(PlayerControl.LocalPlayer, Color.red);
+                    break;
+            }
+
+            foreach (byte MyPartTimer in RoleClass.PartTimer.Data.WhereSelect(x => x.Value == CachedPlayer.LocalPlayer.PlayerId, x => x.Key))
+            {
+                SetPlayerRoleInfo(ModHelpers.GetPlayerControl(MyPartTimer));
+                SetPlayerNameColor(ModHelpers.GetPlayerControl(MyPartTimer));
+            }
+
+            return (true, null, true);
+        }
+
+        //各プレイヤー固有のSuffixを設定
         void CheckPlayerSuffix(PlayerControl player)
         {
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.ArsonistMark)
-                if (LocalRole == RoleId.God || LocalRole == RoleId.Arsonist || CanGhostSeeRoles)
-                    if (Arsonist.IsViewIcon(player)) PlayerNameSuffixes[player.PlayerId].Arsonist = true;
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.DemonMark)
-                if (LocalRole == RoleId.God || LocalRole == RoleId.Demon || CanGhostSeeRoles)
-                    if (Demon.IsViewIcon(player)) PlayerNameSuffixes[player.PlayerId].Demon = true;
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.QuarreledMark)
-                if ((CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Quarreled.QuarreledPlayer.Count > 0)
-                {
-                    foreach (List<PlayerControl> ps in RoleClass.Quarreled.QuarreledPlayer.AsSpan())
-                    {
-                        if (ps.Contains(player) && !player.Data.Disconnected) PlayerNameSuffixes[player.PlayerId].Quarreled = true;
-                    }
-                }
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.LoversMark)
-                if ((CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Lovers.LoversPlayer.Count > 0)
-                {
-                    foreach (List<PlayerControl> ps in RoleClass.Lovers.LoversPlayer.AsSpan())
-                    {
-                        if (ps.Contains(player) && !player.Data.Disconnected) PlayerNameSuffixes[player.PlayerId].Lovers = true;
-                    }
-                }
-            if (RoleClass.Jumbo.BigPlayer.Contains(player) && RoleClass.Jumbo.JumboSize.ContainsKey(player.PlayerId))
-                PlayerNameSuffixes[player.PlayerId].Jumbo = true;
-        }
-        void CheckSuffixes()
-        {
-            //----Suffixes----
-            //Moira
-            if (RoleClass.Camouflager.IsCamouflage) return;
-            if (!Moira.AbilityUsedUp || Moira.AbilityUsedThisMeeting) return;
-            if (Moira.Player is null) return;
-            PlayerNameSuffixes[Moira.Player.PlayerId].Moira = true;
+            //Arsonist
+            if ((LocalRole == RoleId.God || LocalRole == RoleId.Arsonist || CanGhostSeeRoles) && Arsonist.IsViewIcon(player))
+                PlayerNameSuffixes[player.PlayerId].SetArsonistSuffix();
+
+            //Demon
+            if ((LocalRole == RoleId.God || LocalRole == RoleId.Demon || CanGhostSeeRoles) && Demon.IsViewIcon(player))
+                PlayerNameSuffixes[player.PlayerId].SetDemonSuffix();
+
             //Quarreled
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.QuarreledMark)
-            {
-                if (PlayerControl.LocalPlayer.IsQuarreled() && PlayerControl.LocalPlayer.IsAlive())
-                {
-                    PlayerControl side = PlayerControl.LocalPlayer.GetOneSideQuarreled();
-                    PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].Quarreled = true;
-                    if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].Quarreled = true;
-                }
-            }
+            if (!player.Data.Disconnected && (CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Quarreled.QuarreledPlayer.Count > 0)
+                foreach (List<PlayerControl> ps in RoleClass.Quarreled.QuarreledPlayer.AsSpan())
+                    if (ps.Contains(player)) PlayerNameSuffixes[player.PlayerId].SetQuarreledSuffix();
+
             //Lovers
-            if (!RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.LoversMark)
-            {
-                if ((PlayerControl.LocalPlayer.IsLovers() || (PlayerControl.LocalPlayer.IsFakeLovers() && !PlayerControl.LocalPlayer.IsFakeLoversFake())) && PlayerControl.LocalPlayer.IsAlive())
-                {
-                    PlayerControl side = PlayerControl.LocalPlayer.GetOneSideLovers();
-                    if (side == null) side = PlayerControl.LocalPlayer.GetOneSideFakeLovers();
-                    PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].Lovers = true;
-                    if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].Lovers = true;
-                }
-            }
+            if (!player.Data.Disconnected && (CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Lovers.LoversPlayer.Count > 0)
+                foreach (List<PlayerControl> ps in RoleClass.Lovers.LoversPlayer.AsSpan())
+                    if (ps.Contains(player)) PlayerNameSuffixes[player.PlayerId].SetLoversSuffix();
+
+            //Jumbo
+            if (RoleClass.Jumbo.JumboSize.TryGetValue(player.PlayerId, out float value))
+                PlayerNameSuffixes[player.PlayerId].UpdateJumboSuffix(value);
+
             //SatsumaAndImo:自分以外
-            if (CanGhostSeeRoles || LocalRole == RoleId.God)
+            if ((CanGhostSeeRoles || LocalRole == RoleId.God) && player.TryGetRoleBase<SatsumaAndImo>(out SatsumaAndImo satsumaimo))
+                PlayerNameSuffixes[player.PlayerId].SetSatsumaimoSuffix(satsumaimo);
+
+            //PartTimer
+            if (LocalRole == RoleId.PartTimer && RoleClass.PartTimer.IsLocalOn && !CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool() && RoleClass.PartTimer.CurrentTarget.PlayerId == player.PlayerId)
+                PlayerNameSuffixes[player.PlayerId].SetPartTimerSuffix();
+
+            //LocalPlayerの場合は自分と関連する人のSuffixも設定
+            if (player.PlayerId == CachedPlayer.LocalPlayer.PlayerId) CheckMySuffixes();
+        }
+        //自分と自分から見える他プレイヤーのSuffixを設定
+        void CheckMySuffixes()
+        {
+            //Quarreled
+            if (PlayerControl.LocalPlayer.IsQuarreled() && PlayerControl.LocalPlayer.IsAlive())
             {
-                foreach (SatsumaAndImo player in RoleBaseManager.GetRoleBases<SatsumaAndImo>())
-                {
-                    //クルーなら
-                    if (player.TeamState == SatsumaAndImo.SatsumaTeam.Crewmate)
-                    {//名前に(C)をつける
-                        PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoCrew = true;
-                    }
-                    else if (player.TeamState == SatsumaAndImo.SatsumaTeam.Madmate)
-                    {
-                        PlayerNameSuffixes[player.Player.PlayerId].SatsumaimoMad = true;
-                    }
-                }
+                PlayerControl side = PlayerControl.LocalPlayer.GetOneSideQuarreled();
+                PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].SetQuarreledSuffix();
+                if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].SetQuarreledSuffix();
             }
+
+            //Lovers
+            if ((PlayerControl.LocalPlayer.IsLovers() || (PlayerControl.LocalPlayer.IsFakeLovers() && !PlayerControl.LocalPlayer.IsFakeLoversFake())) && PlayerControl.LocalPlayer.IsAlive())
+            {
+                PlayerControl side = PlayerControl.LocalPlayer.GetOneSideLovers();
+                if (side == null) side = PlayerControl.LocalPlayer.GetOneSideFakeLovers();
+                PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].SetLoversSuffix();
+                if (!side.Data.Disconnected) PlayerNameSuffixes[side.PlayerId].SetLoversSuffix();
+            }
+
+            //SatsumaAndImo
+            if (RoleBaseManager.TryGetLocalRoleBase<SatsumaAndImo>(out var satsumaAndImo)) PlayerNameSuffixes[PlayerControl.LocalPlayer.PlayerId].SetSatsumaimoSuffix(satsumaAndImo);
+
+            //Moira
+            //OnHandleAllPlayerで処理
         }
     }
     public class PlayerSuffixBuilder
     {
+        [Flags]
+        public enum SuffixKey
+        {
+            None = 0,
+            Quarreled = 1,
+            Lovers = 1 << 2,
+            Demon = 1 << 3,
+            Arsonist = 1 << 4,
+            Moira = 1 << 5,
+            Jumbo = 1 << 6,
+            Satsumaimo = 1 << 7,
+            PartTimer = 1 << 8,
+            MedicalTechnologist = 1 << 9,
+            Bullet = 1 << 10,
+        }
+
         private byte playerid;
-        private bool changed;
-        private bool quarreled;
-        public bool Quarreled
-        {
-            set
-            {
-                if (value == quarreled) return;
-                quarreled = value;
-                changed = true;
-            }
-        }
-        private bool lovers;
-        public bool Lovers
-        {
-            set
-            {
-                if (value == lovers) return;
-                lovers = value;
-                changed = true;
-            }
-        }
-        private bool demon;
-        public bool Demon
-        {
-            set
-            {
-                if (value == demon) return;
-                demon = value;
-                changed = true;
-            }
-        }
-        private bool arsonist;
-        public bool Arsonist
-        {
-            set
-            {
-                if (value == arsonist) return;
-                arsonist = value;
-                changed = true;
-            }
-        }
-        private bool moira;
-        public bool Moira
-        {
-            set
-            {
-                if (value == moira) return;
-                moira = value;
-                changed = true;
-            }
-        }
-        private bool satsumaimoCrew;
-        public bool SatsumaimoCrew
-        {
-            set
-            {
-                if (value == satsumaimoCrew) return;
-                satsumaimoCrew = value;
-                satsumaimoMad = !value;
-                changed = true;
-            }
-        }
-        private bool satsumaimoMad;
-        public bool SatsumaimoMad
-        {
-            set
-            {
-                if (value == satsumaimoMad) return;
-                satsumaimoMad = value;
-                satsumaimoCrew = !value;
-                changed = true;
-            }
-        }
-        private bool partTimer;
-        public bool PartTimer
-        {
-            set
-            {
-                if (value == partTimer) return;
-                partTimer = value;
-                changed = true;
-            }
-        }
-        private bool medicalTechnologist;
-        public bool MedicalTechnologist
-        {
-            set
-            {
-                if (value == medicalTechnologist) return;
-                medicalTechnologist = value;
-                changed = true;
-            }
-        }
-        private bool bullet;
-        public bool Bullet
-        {
-            set
-            {
-                if (value == bullet) return;
-                bullet = value;
-                changed = true;
-            }
-        }
-        private bool cupid;
-        public bool Cupid
-        {
-            set
-            {
-                if (value == cupid) return;
-                cupid = value;
-                changed = true;
-            }
-        }
-        private bool jumbo;
-        public bool Jumbo
-        {
-            set
-            {
-                if (value == jumbo) return;
-                jumbo = value;
-                changed = true;
-            }
-        }
+        private bool changedValue;
+
+        private Dictionary<SuffixKey, string> suffixdic = new();
         private StringBuilder sb = new();
+        private StringBuilder camouflagedsb = new();
         private string suffix = string.Empty;
+        private string camouflagedsuffix = string.Empty;
         private bool bot;
+        private SuffixKey CurrentEnabledflg = SuffixKey.None;
+        private SuffixKey NewEnabledflg = SuffixKey.None;
+
         public string Suffix
         {
             get
             {
-                //TODO:HashSetを用意して、Value(eg: LoversSuffix)を入れておく。
-                //こうするとループで取得するだけでOK
-                //かつ、更新されたかは要素数を見ればわかる(同じValueは入らないので)
-                //RoleBaseでも、OnHandleName内でSetSuffix()とか用意しとけばよさそう(HashSetへの登録を行う)
                 if (bot) return string.Empty;
-                if (!changed) return suffix;
-                sb.Clear();
-                if (quarreled) sb.Append(QuarreledSuffix);
-                if (lovers || cupid) sb.Append(LoversSuffix);
-                if (demon) sb.Append(DemonSuffix);
-                if (arsonist) sb.Append(ArsonistSuffix);
-                if (moira) sb.Append(Roles.Neutral.Moira.Suffix);
-                if (satsumaimoCrew) sb.Append(SatsumaimoCrewSuffix);
-                if (satsumaimoMad) sb.Append(SatsumaimoMadSuffix);
-                if (jumbo) sb.Append($"({(int)(RoleClass.Jumbo.JumboSize[playerid] * 15)})");
-                if (partTimer) sb.Append(PartTimerSuffix);
-                if (medicalTechnologist) sb.Append(Roles.Crewmate.MedicalTechnologist.ErythrocyteMark);
-                if (bullet) sb.Append(Roles.Neutral.Bullet.Suffix);
-                suffix = sb.ToString();
-                changed = false;
-                return suffix;
+
+                if (CurrentEnabledflg != NewEnabledflg || changedValue)
+                {
+                    sb.Clear();
+                    camouflagedsb.Clear();
+                    foreach (var pair in suffixdic)
+                    {
+                        if (!NewEnabledflg.HasFlag(pair.Key))
+                        {
+                            suffixdic.Remove(pair.Key);
+                            continue;
+                        }
+                        sb.Append(pair.Value);
+
+                        //Camouflageの場合のSuffixをあらかじめ用意しておく
+                        switch (pair.Key)
+                        {
+                            case SuffixKey.Quarreled:
+                                if (!RoleClass.Camouflager.QuarreledMark) continue;
+                                break;
+                            case SuffixKey.Lovers:
+                                if (!RoleClass.Camouflager.LoversMark) continue;
+                                break;
+                            case SuffixKey.Demon:
+                                if (!RoleClass.Camouflager.DemonMark) continue;
+                                break;
+                            case SuffixKey.Arsonist:
+                                if (!RoleClass.Camouflager.ArsonistMark) continue;
+                                break;
+                            default:
+                                continue;
+                        }
+                        camouflagedsb.Append(pair.Value);
+                    }
+                    suffix = sb.ToString();
+                    camouflagedsuffix = camouflagedsb.ToString();
+                    CurrentEnabledflg = NewEnabledflg;
+                    changedValue = false;
+                }
+
+                return RoleClass.Camouflager.IsCamouflage ? camouflagedsuffix : suffix;
             }
         }
         public PlayerSuffixBuilder(PlayerControl p)
         {
             if (p.IsBot()) this.bot = true;
             this.playerid = p.PlayerId;
+        }
+        public void InitSuffix()
+        {
+            NewEnabledflg = SuffixKey.None;
+        }
+        public void UpdateSuffix(SuffixKey Key, string newValue)
+        {
+            NewEnabledflg |= Key;
+            if (suffixdic.TryGetValue(Key, out var suffix) && suffix == newValue) return;
+            SetSuffix(Key, newValue);
+        }
+        public void AddSuffix(SuffixKey Key, string newValue)
+        {
+            NewEnabledflg |= Key;
+            if (!suffixdic.ContainsKey(Key)) SetSuffix(Key, newValue);
+        }
+        private void SetSuffix(SuffixKey Key, string newValue)
+        {
+            suffixdic[Key] = newValue;
+            changedValue = true;
+        }
+        public void SetQuarreledSuffix() {
+            AddSuffix(SuffixKey.Quarreled, RoleClass.Quarreled.Suffix);
+        }
+
+        public void SetLoversSuffix()
+        {
+            AddSuffix(SuffixKey.Lovers, RoleClass.Lovers.Suffix);
+        }
+        public void SetDemonSuffix()
+        {
+            AddSuffix(SuffixKey.Demon, RoleClass.Demon.Suffix);
+        }
+        public void SetArsonistSuffix()
+        {
+            AddSuffix(SuffixKey.Arsonist, RoleClass.Arsonist.Suffix);
+        }
+        public void SetMoiraSuffix()
+        {
+            AddSuffix(SuffixKey.Moira, Moira.Suffix);
+        }
+        public void SetSatsumaimoSuffix(SatsumaAndImo satsumaandimo)
+        {
+            UpdateSuffix(SuffixKey.Satsumaimo, satsumaandimo.GetSuffixText());
+        }
+        public void UpdateJumboSuffix(float size = 0f)
+        {
+            UpdateSuffix(SuffixKey.Jumbo, $"({(int)(size * 15)})");
+        }
+        public void SetPartTimerSuffix()
+        {
+            AddSuffix(SuffixKey.PartTimer, RoleClass.PartTimer.Suffix);
+        }
+        public void SetMedicalTechnologistSuffix()
+        {
+            AddSuffix(SuffixKey.MedicalTechnologist, MedicalTechnologist.ErythrocyteMark);
+        }
+        public void SetBulletSuffix()
+        {
+            AddSuffix(SuffixKey.Bullet, Bullet.Suffix);
         }
     }
 }

@@ -75,7 +75,7 @@ public class PavlovsDogs : RoleBase, INeutral, IVentAvailable, IImpostorVision, 
     {
         if (!RoleClass.Camouflager.IsCamouflage) return;
         SetNamesClass.SetPlayerRoleInfo(CurrentOwner.Player);
-        SetNamesClass.SetPlayerNameColors(CurrentOwner.Player);
+        SetNamesClass.SetPlayerNameColor(CurrentOwner.Player);
     }
 
     public bool OnCheckMurderPlayerAmKiller(PlayerControl target)

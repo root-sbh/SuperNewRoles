@@ -219,12 +219,12 @@ public class MedicalTechnologist : RoleBase, ICrewmate, ISupportSHR, ICustomButt
         if (SampleCrews.FirstCrew != byte.MaxValue)
         {
             PlayerControl first = ModHelpers.PlayerById(SampleCrews.FirstCrew);
-            SetNamesClass.PlayerNameSuffixes[first.PlayerId].MedicalTechnologist = true;
+            SetNamesClass.PlayerNameSuffixes[first.PlayerId].SetMedicalTechnologistSuffix();
         }
         if (SampleCrews.SecondCrew != byte.MaxValue)
         {
             PlayerControl second = ModHelpers.PlayerById(SampleCrews.SecondCrew);
-            SetNamesClass.PlayerNameSuffixes[second.PlayerId].MedicalTechnologist = true;
+            SetNamesClass.PlayerNameSuffixes[second.PlayerId].SetMedicalTechnologistSuffix();
         }
     }
 

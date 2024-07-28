@@ -91,11 +91,11 @@ public static class ShiftActor
             {
                 if (target.IsLovers())
                 {
-                    TargetRoleText += ModHelpers.Cs(RoleClass.Lovers.color, " ♥"); // ラバーズ
+                    TargetRoleText += RoleClass.Lovers.Suffix; // ラバーズ
                 }
                 else if (target.IsQuarreled())
                 {
-                    TargetRoleText += ModHelpers.Cs(Quarreled.color, "○"); //　クラード
+                    TargetRoleText += RoleClass.Quarreled.Suffix; //　クラード
                 }
 
                 if (target.IsHauntedWolf())

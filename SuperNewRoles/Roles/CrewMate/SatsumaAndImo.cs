@@ -40,10 +40,12 @@ public class SatsumaAndImo : RoleBase, INeutral, IWrapUpHandler, ISupportSHR
     {
         return TeamState switch
         {
-            _ => " (?)"
+            SatsumaTeam.Crewmate => Suffix_Crewmate,
+            SatsumaTeam.Madmate => Suffix_Madmate,
+            _ => Suffix_Unknown
         };
     }
-    private static string TEAMNAME_Hatena = " (?)";
-    private static string TEAMNAME_Crewmate = " (C)";
-    private static string TEAMNAME_Madmate = " (M)";
+    public static readonly string Suffix_Unknown = " (?)";
+    public static readonly string Suffix_Crewmate = ModHelpers.Cs(Palette.White, " (C)");
+    public static readonly string Suffix_Madmate = ModHelpers.Cs(RoleClass.ImpostorRed, " (M)");
 }

@@ -47,9 +47,7 @@ public class Bullet : RoleBase, ISidekick, INeutral, IVentAvailable, ISaboAvaila
     }
     public void OnHandleName()
     {
-        if (SidekickedParent == null)
-            return;
-        SetNamesClass.PlayerNameSuffixes[SidekickedParent.Player.PlayerId].Bullet = true;
+        if (SidekickedParent != null) SetNamesClass.PlayerNameSuffixes[SidekickedParent.Player.PlayerId].SetBulletSuffix();
     }
     private bool IsNearParent()
     {

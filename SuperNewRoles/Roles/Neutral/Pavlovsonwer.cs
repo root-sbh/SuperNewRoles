@@ -110,7 +110,7 @@ public class PavlovsOwner : RoleBase, INeutral, INameHandler, IRpcHandler, IFixe
         foreach (var dogs in CreatedDogs.AsSpan())
         {
             SetNamesClass.SetPlayerRoleInfo(dogs.Player);
-            SetNamesClass.SetPlayerNameColors(dogs.Player);
+            SetNamesClass.SetPlayerNameColor(dogs.Player);
         }
     }
 

@@ -1421,7 +1421,7 @@ public static class OnGameEndPatch
 
             string namesuffix = "";
             if (p.IsLovers())
-                namesuffix = ModHelpers.Cs(RoleClass.Lovers.color, " ♥");
+                namesuffix = RoleClass.Lovers.Suffix;
             Dictionary<string, (Color, bool)> attributeRoles = new(SetNamesClass.AttributeRoleNameSet(p));
             string attributeRoleName = "";
             if (attributeRoles.Count != 0)

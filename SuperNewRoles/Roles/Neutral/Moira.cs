@@ -373,8 +373,7 @@ public class Moira : RoleBase, INeutral, IMeetingHandler, IWrapUpHandler, INameH
 
     public void OnHandleAllPlayer()
     {
-        if (OldLimit > 0) return;
-        SetNamesClass.PlayerNameSuffixes[Player.PlayerId].Moira = true;
+        if (OldLimit <= 0) SetNamesClass.PlayerNameSuffixes[Player.PlayerId].SetMoiraSuffix();
     }
 
     public void RpcReader(MessageReader reader)
@@ -402,7 +401,7 @@ public class Moira : RoleBase, INeutral, IMeetingHandler, IWrapUpHandler, INameH
 
     public string CommandName => "swap";
 
-    private string MoiraInfoTitle => "<size=160%>" + CustomOptionHolder.Cs(Roleinfo.RoleColor, Roleinfo.NameKey + "Name") + "</size>";
+    private static string MoiraInfoTitle => $"<size=160%>{CustomOptionHolder.Cs(Roleinfo.RoleColor, $"{Roleinfo.NameKey}Name")}</size>";
     private static string CommandUsage(string text) => $"{text}\n{ModTranslation.GetString("MoiraCommandUsage")}";
 
     public bool OnChatCommand(string[] args)

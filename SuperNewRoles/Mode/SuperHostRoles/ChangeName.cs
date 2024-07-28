@@ -196,12 +196,12 @@ public static class ChangeName
                         if (CursePlayer.IsBot()) continue;
                         if (!RoleClass.Camouflager.IsCamouflage)
                         {
-                            ChangePlayers[CursePlayer.PlayerId] = ChangePlayers.GetNowName(CursePlayer) + ModHelpers.Cs(RoleClass.Demon.color, " ▲");
+                            ChangePlayers[CursePlayer.PlayerId] = ChangePlayers.GetNowName(CursePlayer) + RoleClass.Demon.Suffix;
                         }
                         else if (RoleClass.Camouflager.DemonMark)
                         {
-                            if (!ChangePlayers.Contains(CursePlayer.PlayerId)) ChangePlayers[CursePlayer] = ModHelpers.Cs(RoleClass.Demon.color, " ▲");
-                            else ChangePlayers[CursePlayer.PlayerId] = ChangePlayers[CursePlayer.PlayerId] + ModHelpers.Cs(RoleClass.Demon.color, " ▲");
+                            if (!ChangePlayers.Contains(CursePlayer.PlayerId)) ChangePlayers[CursePlayer] = RoleClass.Demon.Suffix;
+                            else ChangePlayers[CursePlayer.PlayerId] = ChangePlayers[CursePlayer.PlayerId] + RoleClass.Demon.Suffix;
                         }
                     }
                     break;
@@ -211,12 +211,12 @@ public static class ChangeName
                         if (DousePlayer.IsBot()) continue;
                         if (!RoleClass.Camouflager.IsCamouflage)
                         {
-                            ChangePlayers[DousePlayer.PlayerId] = ChangePlayers.GetNowName(DousePlayer) + ModHelpers.Cs(RoleClass.Arsonist.color, " §");
+                            ChangePlayers[DousePlayer.PlayerId] = ChangePlayers.GetNowName(DousePlayer) + RoleClass.Arsonist.Suffix;
                         }
                         else if (RoleClass.Camouflager.ArsonistMark)
                         {
-                            if (!ChangePlayers.Contains(DousePlayer.PlayerId)) ChangePlayers[DousePlayer] = ModHelpers.Cs(RoleClass.Arsonist.color, " §");
-                            else ChangePlayers[DousePlayer.PlayerId] = ChangePlayers[DousePlayer.PlayerId] + ModHelpers.Cs(RoleClass.Arsonist.color, " §");
+                            if (!ChangePlayers.Contains(DousePlayer.PlayerId)) ChangePlayers[DousePlayer] = RoleClass.Arsonist.Suffix;
+                            else ChangePlayers[DousePlayer.PlayerId] = ChangePlayers[DousePlayer.PlayerId] + RoleClass.Arsonist.Suffix;
                         }
                     }
                     break;
@@ -258,7 +258,7 @@ public static class ChangeName
             //カモフラ中じゃない、もしくはラバーズマークがカモフラ中でも見える場合
             !RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.LoversMark)
         {
-            var suffix = ModHelpers.Cs(RoleClass.Lovers.color, " ♥");
+            var suffix = RoleClass.Lovers.Suffix;
             PlayerControl Side = player.GetOneSideLovers();
             string name = Side.GetDefaultName();
             ChangePlayers[Side.PlayerId] = ChangePlayers.GetNowName(Side) + suffix;
@@ -269,7 +269,7 @@ public static class ChangeName
             //カモフラ中じゃない、もしくはクラードマークがカモフラ中でも見える場合
             !RoleClass.Camouflager.IsCamouflage || RoleClass.Camouflager.QuarreledMark)
         {
-            var suffix = ModHelpers.Cs(RoleClass.Quarreled.color, "○");
+            var suffix = RoleClass.Quarreled.Suffix;
             PlayerControl Side = player.GetOneSideQuarreled();
             string name = Side.GetDefaultName();
             ChangePlayers[Side.PlayerId] = ChangePlayers.GetNowName(Side) + suffix;
@@ -323,12 +323,12 @@ public static class ChangeName
         {
             if (Demon.IsViewIcon(player))
             {
-                MySuffix.Append(ModHelpers.Cs(RoleClass.Demon.color, " ▲"));
+                MySuffix.Append(RoleClass.Demon.Suffix);
                 IsDemonVIew = true;
             }
             if (Arsonist.IsViewIcon(player))
             {
-                MySuffix.Append(ModHelpers.Cs(RoleClass.Arsonist.color, " §"));
+                MySuffix.Append(RoleClass.Arsonist.Suffix);
                 IsArsonistVIew = true;
             }
             if (player.IsHauntedWolf())
@@ -358,12 +358,12 @@ public static class ChangeName
             {
                 if (Demon.IsViewIcon(player))
                 {
-                    MySuffix.Append(ModHelpers.Cs(RoleClass.Demon.color, " ▲"));
+                    MySuffix.Append(RoleClass.Demon.Suffix);
                     IsDemonVIew = true;
                 }
                 if (Arsonist.IsViewIcon(player))
                 {
-                    MySuffix.Append(ModHelpers.Cs(RoleClass.Arsonist.color, " §"));
+                    MySuffix.Append(RoleClass.Arsonist.Suffix);
                     IsArsonistVIew = true;
                 }
             }
@@ -410,9 +410,9 @@ public static class ChangeName
         StringBuilder DieSuffix = new();
         // FIXME : SHRにおいて重複役の名前変更の共通処理が完成していない。
         if (!IsDemonVIew && Demon.IsViewIcon(player))
-            DieSuffix.Append(ModHelpers.Cs(RoleClass.Demon.color, " ▲"));
+            DieSuffix.Append(RoleClass.Demon.Suffix);
         if (!IsArsonistVIew && Arsonist.IsViewIcon(player))
-            DieSuffix.Append(ModHelpers.Cs(RoleClass.Arsonist.color, " §"));
+            DieSuffix.Append(RoleClass.Arsonist.Suffix);
         if (!IsHauntedWolfVIew && player.IsHauntedWolf())
             DieSuffix.Append($" + {ModHelpers.Cs(SuperNewRoles.Roles.Attribute.HauntedWolf.RoleData.color, ModTranslation.GetString("HauntedWolfName"))}");
         if (!IsGhostMechanicVIew && player.IsGhostRole(RoleId.GhostMechanic))
