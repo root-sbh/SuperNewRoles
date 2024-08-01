@@ -49,7 +49,7 @@ public class SetNamesClass
 
         PlayerNameColorUpdated.Add(player.PlayerId);
     }
-    public static void InitPlayerNameColors(PlayerControl player)
+    public static void InitPlayerNameColor(PlayerControl player)
     {
         if (PlayerNameColorUpdated.Contains(player.PlayerId)) return;
         if ((PlayerControl.LocalPlayer.IsImpostor() && (player.IsImpostor() || player.IsRole(RoleId.Spy, RoleId.Egoist))) || (ModeHandler.IsMode(ModeId.HideAndSeek) && player.IsImpostor()))
@@ -236,6 +236,10 @@ public class SetNamesClass
     public static void Update(PlayerControl __instance)
     {
         RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
+        bool isLocalPlayerImpostor = PlayerControl.LocalPlayer.IsImpostor();
+        bool isLocalPlayerJackalTeam =
+            (PlayerControl.LocalPlayer.IsJackalTeam() && !PlayerControl.LocalPlayer.IsFriendRoles()) ||
+            JackalFriends.CheckJackal(PlayerControl.LocalPlayer);
         bool CanGhostSeeRoles = CheckCanGhostSeeRoles();
         bool CanSeeAllRole =
             CanGhostSeeRoles || Debugger.canSeeRole ||
@@ -247,9 +251,12 @@ public class SetNamesClass
             (LocalRole == RoleId.Safecracker && Safecracker.CheckTask(__instance, Safecracker.CheckTasks.CheckImpostor));
         int CanSeeImpostorRoleTurnRemaining = PlusGameOptions.CanSeeImpostorRoleTurn.GetInt() - ReportDeadBodyPatch.MeetingCount.all;
         bool CanSeeImpostorRole =
-            PlayerControl.LocalPlayer.IsImpostor() &&
+            isLocalPlayerImpostor &&
             CustomOptionHolder.EgoistOption.GetSelection() is 0 && CustomOptionHolder.SpyOption.GetSelection() is 0 &&
             (CanSeeImpostorRoleTurnRemaining < 0 || (CanSeeImpostorRoleTurnRemaining == 0 && !RoleClass.IsMeeting));
+        bool CanSeeInCognitiveDeficit =
+            Sabotage.SabotageManager.thisSabotage == Sabotage.SabotageManager.CustomSabotage.CognitiveDeficit &&
+                ModeHandler.IsMode(ModeId.Default) && isLocalPlayerImpostor;
 
         PlayerNameColorUpdated.Clear();
         PlayerRoleInfoUpdated.Clear();
@@ -259,7 +266,7 @@ public class SetNamesClass
             if (!PlayerNameTexts.ContainsKey(player.PlayerId)) PlayerNameTexts[player.PlayerId] = player.CurrentOutfit.PlayerName;
             if (!PlayerNameSuffixes.ContainsKey(player.PlayerId)) PlayerNameSuffixes[player.PlayerId] = new(player);
 
-            InitPlayerNameColors(player);
+            InitPlayerNameColor(player);
             PlayerNameSuffixes[player.PlayerId].InitSuffix();
 
             var check = CheckView(player);
@@ -285,10 +292,13 @@ public class SetNamesClass
 
             (bool, Color?, bool) check = (false, null, false);
 
-            if (player.IsImpostorAddedFake())
+            if (CanSeeImpostor || CanSeeImpostorRole)
             {
-                if (CanSeeImpostor) check.Item1 = true;
-                if (CanSeeImpostorRole) check.Item3 = true;
+                if (player.IsImpostorAddedFake())
+                {
+                    check.Item1 = CanSeeImpostor;
+                    check.Item3 = CanSeeImpostorRole;
+                }
             }
 
             switch (LocalRole)
@@ -320,7 +330,7 @@ public class SetNamesClass
                     if (OrientalShaman.IsKiller(player)) check.Item1 = true;
                     break;
             }
-            if (PlayerControl.LocalPlayer.IsImpostor())
+            if (isLocalPlayerImpostor)
             {
                 if (RoleClass.SideKiller.MadKillerPlayer.Contains(player))
                 {
@@ -328,16 +338,14 @@ public class SetNamesClass
                     check.Item2 = RoleClass.ImpostorRed;
                 }
             }
-            if ((PlayerControl.LocalPlayer.IsJackalTeam() && !PlayerControl.LocalPlayer.IsFriendRoles()) ||
-                JackalFriends.CheckJackal(PlayerControl.LocalPlayer))
+            if (isLocalPlayerJackalTeam)
             {
                 if (player.IsJackalTeam() && (!player.IsFriendRoles() || player.IsRole(RoleId.Bullet)))
                 {
                     check = (true, null, true);
                 }
             }
-            if (Sabotage.SabotageManager.thisSabotage == Sabotage.SabotageManager.CustomSabotage.CognitiveDeficit &&
-                ModeHandler.IsMode(ModeId.Default) && PlayerControl.LocalPlayer.IsImpostor() &&
+            if (CanSeeInCognitiveDeficit &&
                 player.IsAlive() && !Sabotage.CognitiveDeficit.Main.OKPlayers.IsCheckListPlayerControl(player) &&
                 !(player.IsImpostor() || player.IsRole(RoleId.MadKiller)))
             {
@@ -436,12 +444,12 @@ public class SetNamesClass
                 PlayerNameSuffixes[player.PlayerId].SetDemonSuffix();
 
             //Quarreled
-            if (!player.Data.Disconnected && (CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Quarreled.QuarreledPlayer.Count > 0)
+            if ((CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Quarreled.QuarreledPlayer.Count > 0 && !player.Data.Disconnected)
                 foreach (List<PlayerControl> ps in RoleClass.Quarreled.QuarreledPlayer.AsSpan())
                     if (ps.Contains(player)) PlayerNameSuffixes[player.PlayerId].SetQuarreledSuffix();
 
             //Lovers
-            if (!player.Data.Disconnected && (CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Lovers.LoversPlayer.Count > 0)
+            if ((CanGhostSeeRoles || LocalRole == RoleId.God) && RoleClass.Lovers.LoversPlayer.Count > 0 && !player.Data.Disconnected)
                 foreach (List<PlayerControl> ps in RoleClass.Lovers.LoversPlayer.AsSpan())
                     if (ps.Contains(player)) PlayerNameSuffixes[player.PlayerId].SetLoversSuffix();
 
@@ -454,7 +462,7 @@ public class SetNamesClass
                 PlayerNameSuffixes[player.PlayerId].SetSatsumaimoSuffix(satsumaimo);
 
             //PartTimer
-            if (LocalRole == RoleId.PartTimer && RoleClass.PartTimer.IsLocalOn && !CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool() && RoleClass.PartTimer.CurrentTarget.PlayerId == player.PlayerId)
+            if (LocalRole == RoleId.PartTimer && RoleClass.PartTimer.IsLocalOn && player.PlayerId == RoleClass.PartTimer.CurrentTarget.PlayerId && !CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool())
                 PlayerNameSuffixes[player.PlayerId].SetPartTimerSuffix();
 
             //LocalPlayerの場合は自分と関連する人のSuffixも設定
@@ -637,8 +645,7 @@ public class SetNamesClass
 //{
 //    public static void Postfix(PlayerControl __instance)
 //    {
-//        //TODO: 本来なら毎フレームではなくRole変更やSabotage、タスク完了など、名前/RoleInfoの変更時のみ呼び出されるべき
-//        SetNamesClass.InitNameTagsAndColors();
+//        SetNamesClass.InitPlayerNameColors();
 //        RoleId LocalRole = PlayerControl.LocalPlayer.GetRole();
 //        bool CanSeeAllRole =
 //            SetNamesClass.CanGhostSeeRoles() ||
@@ -650,7 +657,7 @@ public class SetNamesClass
 //            foreach (PlayerControl player in PlayerControl.AllPlayerControls)
 //            {
 //                SetNamesClass.SetPlayerNameColors(player);
-//                SetNamesClass.SetPlayerRoleInfo(player);
+//                SetNamesClass.SetPlayerRoleNames(player);
 //            }
 //        }
 //        //TODO:神移行時にINameHandlerに移行する
@@ -661,7 +668,7 @@ public class SetNamesClass
 //                if (RoleClass.IsMeeting || player.IsAlive())
 //                {
 //                    SetNamesClass.SetPlayerNameColors(player);
-//                    SetNamesClass.SetPlayerRoleInfo(player);
+//                    SetNamesClass.SetPlayerRoleNames(player);
 //                }
 //            }
 //        }
@@ -678,6 +685,21 @@ public class SetNamesClass
 //                    if (p.IsImpostorAddedFake())
 //                    {
 //                        SetNamesClass.SetPlayerNameColor(p, RoleClass.ImpostorRed);
+//                    }
+//                }
+//            }
+//            int canSeeImpostorRoleTurnRemaining = PlusGameOptions.CanSeeImpostorRoleTurn.GetInt() - ReportDeadBodyPatch.MeetingCount.all;
+//            if (PlayerControl.LocalPlayer.IsImpostor() &&
+//                CustomOptionHolder.EgoistOption.GetSelection() is 0 && CustomOptionHolder.SpyOption.GetSelection() is 0 &&
+//                (canSeeImpostorRoleTurnRemaining < 0 ||
+//                (canSeeImpostorRoleTurnRemaining == 0 && !RoleClass.IsMeeting)))
+//            //会議開始時に1減らすので会議が終わってから見えるように
+//            {
+//                foreach (PlayerControl p in CachedPlayer.AllPlayers)
+//                {
+//                    if (p.IsImpostorAddedFake())
+//                    {
+//                        SetNamesClass.SetPlayerRoleNames(p);
 //                    }
 //                }
 //            }
@@ -712,12 +734,12 @@ public class SetNamesClass
 //                    {
 //                        if (CustomOptionHolder.PartTimerIsCheckTargetRole.GetBool())
 //                        {
-//                            SetNamesClass.SetPlayerRoleInfo(RoleClass.PartTimer.CurrentTarget);
+//                            SetNamesClass.SetPlayerRoleNames(RoleClass.PartTimer.CurrentTarget);
 //                            SetNamesClass.SetPlayerNameColors(RoleClass.PartTimer.CurrentTarget);
 //                        }
 //                        else
 //                        {
-//                            SetNamesClass.PlayerNameSuffixes[RoleClass.PartTimer.CurrentTarget.PlayerId].PartTimer = true;
+//                            SetNamesClass.SetPlayerNameText(RoleClass.PartTimer.CurrentTarget, RoleClass.PartTimer.CurrentTarget.NameText().text + ModHelpers.Cs(RoleClass.PartTimer.color, "◀"));
 //                        }
 //                    }
 //                    break;
@@ -729,7 +751,7 @@ public class SetNamesClass
 //                    {
 //                        if (FireFox.FireFoxIsCheckFox.GetBool() || p.IsRole(PlayerControl.LocalPlayer.GetRole()))
 //                        {
-//                            SetNamesClass.SetPlayerRoleInfo(p);
+//                            SetNamesClass.SetPlayerRoleNames(p);
 //                            SetNamesClass.SetPlayerNameColors(p);
 //                        }
 //                    }
@@ -742,7 +764,7 @@ public class SetNamesClass
 //                        if (!players.Contains(PlayerControl.LocalPlayer)) continue;
 //                        foreach (PlayerControl p in players)
 //                        {
-//                            SetNamesClass.SetPlayerRoleInfo(p);
+//                            SetNamesClass.SetPlayerRoleNames(p);
 //                            SetNamesClass.SetPlayerNameColors(p);
 //                        }
 //                        break;
@@ -752,7 +774,7 @@ public class SetNamesClass
 //                    foreach (var date in OrientalShaman.OrientalShamanCausative)
 //                    {
 //                        if (date.Key != PlayerControl.LocalPlayer.PlayerId) continue;
-//                        SetNamesClass.SetPlayerRoleInfo(ModHelpers.PlayerById(date.Value));
+//                        SetNamesClass.SetPlayerRoleNames(ModHelpers.PlayerById(date.Value));
 //                        SetNamesClass.SetPlayerNameColors(ModHelpers.PlayerById(date.Value));
 //                    }
 //                    foreach (PlayerControl player in PlayerControl.AllPlayerControls)
@@ -765,7 +787,7 @@ public class SetNamesClass
 //                    foreach (var date in OrientalShaman.OrientalShamanCausative)
 //                    {
 //                        if (date.Value != PlayerControl.LocalPlayer.PlayerId) continue;
-//                        SetNamesClass.SetPlayerRoleInfo(ModHelpers.PlayerById(date.Key));
+//                        SetNamesClass.SetPlayerRoleNames(ModHelpers.PlayerById(date.Key));
 //                        SetNamesClass.SetPlayerNameColors(ModHelpers.PlayerById(date.Key));
 //                    }
 //                    break;
@@ -798,29 +820,41 @@ public class SetNamesClass
 //                        continue;
 //                    if (p.IsFriendRoles() && !p.IsRole(RoleId.Bullet))
 //                        continue;
-//                    SetNamesClass.SetPlayerRoleInfo(p);
+//                    SetNamesClass.SetPlayerRoleNames(p);
 //                    SetNamesClass.SetPlayerNameColors(p);
 //                }
 //            }
-//            SetNamesClass.SetPlayerRoleInfo(PlayerControl.LocalPlayer);
+//            SetNamesClass.SetPlayerRoleNames(PlayerControl.LocalPlayer);
 //            SetNamesClass.SetPlayerNameColors(PlayerControl.LocalPlayer);
 //        }
 //        CustomRoles.NameHandler(CanSeeAllRole);
-//        //Suffixes
-//        Pavlovsdogs.SetNameUpdate();
-//        SetNamesClass.ArsonistSet();
-//        SetNamesClass.DemonSet();
-//        SetNamesClass.CelebritySet();
-//        SetNamesClass.QuarreledSet();
-//        SetNamesClass.LoversSet();
-//        SetNamesClass.MoiraSet();
+//        //名前の奴
+//        if (RoleClass.Camouflager.IsCamouflage)
+//        {
+//            if (RoleClass.Camouflager.ArsonistMark)
+//                SetNamesClass.ArsonistSet();
+//            if (RoleClass.Camouflager.DemonMark)
+//                SetNamesClass.DemonSet();
+//            if (RoleClass.Camouflager.LoversMark)
+//                SetNamesClass.LoversSet();
+//            if (RoleClass.Camouflager.QuarreledMark)
+//                SetNamesClass.QuarreledSet();
+//        }
+//        else
+//        {
+//            SetNamesClass.ArsonistSet();
+//            SetNamesClass.DemonSet();
+//            SetNamesClass.CelebritySet();
+//            SetNamesClass.QuarreledSet();
+//            SetNamesClass.LoversSet();
+//        }
 //        SetNamesClass.SatsumaimoSet();
 //        SetNamesClass.JumboSet();
 
 //        if (RoleClass.PartTimer.Data.ContainsValue(CachedPlayer.LocalPlayer.PlayerId))
 //        {
 //            PlayerControl PartTimerTarget = RoleClass.PartTimer.Data.GetPCByValue(PlayerControl.LocalPlayer.PlayerId);
-//            SetNamesClass.SetPlayerRoleInfo(PartTimerTarget);
+//            SetNamesClass.SetPlayerRoleNames(PartTimerTarget);
 //            SetNamesClass.SetPlayerNameColors(PartTimerTarget);
 //        }
 //        if (RoleClass.Stefinder.IsKill)
@@ -846,6 +880,5 @@ public class SetNamesClass
 //                }
 //            }
 //        }
-//        SetNamesClass.ApplyAllPlayerNameTextAndColor();
 //    }
 //}
